@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ASSIST — {% block page_title %}Dashboard{% endblock %}</title>
+  <link rel="stylesheet" href="/static/css/main.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet" />
+</head>
+<body>
+<div class="app-shell">
+
+  {# ── Topbar ────────────────────────────────────────────────────────── #}
+  <header class="topbar">
+    <div class="topbar-logo">
+      {# Drop logo.svg into static/svg/ and it will appear automatically #}
+      <img src="/static/svg/logo.svg"
+           onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
+           alt="ASSIST logo" />
+      <div class="logo-placeholder" style="display:none;">
+        <span class="logo-name">ASSIST</span>
+        <span class="logo-sub">Innovative Minds</span>
+      </div>
+    </div>
+
+    <div class="topbar-pills">
+      <div class="pill pill--robot">
+        <span class="pill-dot"></span>
+        ROBOT: CONNECTED
+      </div>
+      <div class="pill pill--estop">
+        <span class="pill-dot"></span>
+        E-STOP: ACTIVE
+      </div>
+      <div class="pill pill--gripper">
+        <span class="pill-dot"></span>
+        GRIPPER: CLOSED
+      </div>
+    </div>
+
+    <div class="topbar-actions">
+      <button class="icon-btn" title="Logout">
+        {# Drop logout.svg into static/svg/ #}
+        <img src="/static/svg/logout.svg"
+             onerror="this.outerHTML='<span style=&quot;color:var(--text-secondary);font-size:16px;&quot;>⎋</span>'"
+             alt="Logout" />
+      </button>
+    </div>
+  </header>
+
+  {# ── Sidebar ───────────────────────────────────────────────────────── #}
+  {% include "partials/sidebar.html" %}
+
+  {# ── Main (camera) ─────────────────────────────────────────────────── #}
+  <main class="main-area">
+    <div class="camera-panel">
+
+      {# Panel header #}
+      <div class="camera-panel-header">
+        <span class="camera-panel-title">Live Camera Stream</span>
+        <div class="camera-panel-indicators">
+          <span class="indicator indicator--red" id="stream-indicator"></span>
+          <span class="indicator indicator--red" style="background:var(--red)"></span>
+        </div>
+      </div>
+
+      {# Video viewport with corner brackets #}
+      <div class="camera-viewport">
+        <video id="stream" autoplay playsinline muted></video>
+
+        {# Bottom-right / bottom-left corner brackets via JS-injected divs
+           (top corners are CSS ::before / ::after on .camera-viewport) #}
+        <div class="camera-corner-br"></div>
+        <div class="camera-corner-bl"></div>
+
+        {# Connecting overlay — hidden by webrtc.js once stream starts #}
+        <div class="stream-overlay" id="stream-overlay">
+          <div class="spinner"></div>
+          <span class="stream-overlay-text">Connecting to camera…</span>
+        </div>
+      </div>
+
+      {# Detection log #}
+      <div class="detection-log">
+        <div class="detection-log-label">{% block log_label %}OCB Detected:{% endblock %}</div>
+        <div class="detection-log-entries" id="detection-entries">
+          {% block detection_entries %}
+          <span class="entry" style="color:var(--text-muted);font-style:italic;">No detections yet</span>
+          {% endblock %}
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  {# ── Right panel ───────────────────────────────────────────────────── #}
+  <aside class="right-panel">
+    <div class="right-panel-title">{% block right_panel_title %}{% endblock %}</div>
+    <div class="right-panel-body">
+      {% block right_panel %}
+      <div class="rp-placeholder">Content coming soon</div>
+      {% endblock %}
+    </div>
+    <div class="right-panel-footer">
+      <button class="btn btn--start" id="btn-start-task">Start Task</button>
+      <button class="btn btn--stop"  id="btn-emergency-stop">Emergency Stop</button>
+    </div>
+  </aside>
+
+  {# ── Status bar ────────────────────────────────────────────────────── #}
+  <footer class="statusbar">
+    <div class="statusbar-left">
+      <span>LATENCY: <span class="val" id="status-latency">--</span></span>
+      <span>FPS: <span class="val" id="status-fps">--</span></span>
+    </div>
+    <div class="statusbar-right">
+      <span>DEVICE: <span class="val">localhost</span></span>
+      <span>TIME: <span class="val" id="status-time">--:--:--</span></span>
+    </div>
+  </footer>
+
+</div>
+
+<script src="/static/js/webrtc.js"></script>
+<script src="/static/js/dashboard.js"></script>
+{% block page_scripts %}{% endblock %}
+</body>
+</html>

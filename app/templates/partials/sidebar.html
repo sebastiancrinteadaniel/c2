@@ -1,0 +1,33 @@
+{#
+  Sidebar partial — included by base.html.
+  active_page is passed from each route (e.g. "industry", "healthcare", …)
+#}
+{% set nav_items = [
+  ("industry",    "/",             "Industry 5.0",  "Sorting",   "nav-industry"),
+  ("healthcare",  "/healthcare",   "Healthcare",    "Medical",   "nav-healthcare"),
+  ("food",        "/food",         "Food",          "Candy",     "nav-food"),
+  ("interactive", "/interactive",  "Interactive",   "Mode",      "nav-interactive"),
+  ("settings",    "/settings",     "Settings",      "Control",   "nav-settings"),
+] %}
+
+<nav class="sidebar">
+  {% for page_key, href, label, sublabel, icon_name in nav_items %}
+  <a href="{{ href }}"
+     class="nav-item {% if active_page == page_key %}active{% endif %}"
+     title="{{ label }} ({{ sublabel }})">
+
+    {# Drop {icon_name}.svg into static/svg/ — onerror shows fallback box #}
+    <img class="nav-icon"
+         src="/static/svg/{{ icon_name }}.svg"
+         onerror="this.outerHTML='<span class=\'nav-icon-fallback\'></span>'"
+         alt="{{ label }}" />
+
+    <span class="nav-label">
+      {{ label }}
+      <span>({{ sublabel }})</span>
+    </span>
+  </a>
+  {% endfor %}
+
+  <div class="sidebar-spacer"></div>
+</nav>

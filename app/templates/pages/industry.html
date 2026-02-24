@@ -1,0 +1,130 @@
+{% extends "base.html" %}
+
+{% block page_title %}Industry 5.0 — Sorting{% endblock %}
+
+{% block right_panel_title %}Industry 5.0 Sorting{% endblock %}
+
+{% block log_label %}OCR Detected:{% endblock %}
+
+{% block detection_entries %}
+<span class="entry" style="color:var(--text-muted);font-style:italic;" id="ocr-list">No detections yet</span>
+{% endblock %}
+
+{% block right_panel %}
+{# ── SORTING PROFILES ─────────────────────────────────────────── #}
+<div class="rp-section">
+  <div class="rp-section-header">Sorting Profiles</div>
+  <select class="rp-select" id="profile-select">
+    <option value="">Select a profile…</option>
+    <option value="hardware">Hardware Mix</option>
+    <option value="gears">Gears Only</option>
+    <option value="screws">Screws &amp; Bolts</option>
+  </select>
+  <div class="rp-profile-actions">
+    <button class="rp-btn rp-btn--new" onclick="profileAction('new')">
+      <img src="/static/svg/icon-new.svg" alt="" onerror="this.style.display='none'" /> New
+    </button>
+    <button class="rp-btn rp-btn--save" onclick="profileAction('save')">
+      <img src="/static/svg/icon-save.svg" alt="" onerror="this.style.display='none'" />Save
+    </button>
+    <button class="rp-btn rp-btn--delete" onclick="profileAction('delete')">
+      <img src="/static/svg/icon-delete.svg" alt="" onerror="this.style.display='none'" />Delete
+    </button>
+  </div>
+</div>
+
+{# ── PART TO BIN MAPPING ────────────────────────────────────── #}
+<div class="rp-section">
+  <div class="rp-section-header">Part to Bin Mapping</div>
+
+  <div class="rp-mapping-row">
+    <select class="rp-select"><option value="">Select</option><option>Screw</option><option>Bolt</option><option>Gear (24T)</option><option>Gear (12T)</option></select>
+    <input type="number" class="rp-number" value="0" min="0" max="99" />
+  </div>
+  <div class="rp-mapping-row">
+    <select class="rp-select"><option value="">Select</option><option>Screw</option><option>Bolt</option><option>Gear (24T)</option><option>Gear (12T)</option></select>
+    <input type="number" class="rp-number" value="0" min="0" max="99" />
+  </div>
+  <div class="rp-mapping-row">
+    <select class="rp-select"><option value="">Select</option><option>Screw</option><option>Bolt</option><option>Gear (24T)</option><option>Gear (12T)</option></select>
+    <input type="number" class="rp-number" value="0" min="0" max="99" />
+  </div>
+  <div class="rp-mapping-row">
+    <select class="rp-select"><option value="">Select</option><option>Screw</option><option>Bolt</option><option>Gear (24T)</option><option>Gear (12T)</option></select>
+    <input type="number" class="rp-number" value="0" min="0" max="99" />
+  </div>
+</div>
+
+{# ── APPLY BUTTON ───────────────────────────────────────────────── #}
+<button class="rp-apply-btn" onclick="applyMapping()">Apply Global Mapping</button>
+
+{# ── DIAGRAM SVG ──────────────────────────────────────────────── #}
+<div class="rp-diagram">
+  <img src="/static/svg/industry-diagram.svg"
+       alt="Sorting diagram"
+       onerror="this.style.display='none'; this.nextElementSibling.style.display='block';" />
+  <div class="rp-diagram-placeholder" style="display:none;">Drop industry-diagram.svg into static/svg/</div>
+</div>
+
+<script>
+// ── Helpers ────────────────────────────────────────────────────────────────
+function _collectMapping() {
+  const rows = document.querySelectorAll('.rp-mapping-row');
+  const mapping = [];
+  rows.forEach(row => {
+    const part = row.querySelector('select').value;
+    const bin  = parseInt(row.querySelector('input').value, 10);
+    if (part) mapping.push({ part, bin });
+  });
+  return mapping;
+}
+
+async function _post(url, body) {
+  try {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    return await res.json();
+  } catch (err) {
+    console.error('[industry] fetch error:', err);
+  }
+}
+
+// ── Profile actions ────────────────────────────────────────────────────────
+function profileAction(action) {
+  const sel = document.getElementById('profile-select');
+  if (action === 'new') {
+    const name = prompt('Profile name:');
+    if (name) {
+      const opt = new Option(name, name.toLowerCase());
+      sel.add(opt);
+      sel.value = opt.value;
+    }
+  } else if (action === 'save') {
+    if (!sel.value) return alert('Select a profile first.');
+    alert(`Saved: ${sel.options[sel.selectedIndex].text}`);
+  } else if (action === 'delete') {
+    if (!sel.value) return alert('Select a profile first.');
+    if (confirm('Delete this profile?')) sel.remove(sel.selectedIndex);
+  }
+}
+
+// ── Apply mapping (APPLY GLOBAL MAPPING button) ────────────────────────────
+function applyMapping() {
+  const mapping = _collectMapping();
+  if (!mapping.length) return alert('No mappings configured.');
+  _post('/api/industry/mapping', { mapping });
+}
+
+// ── Auto-send mapping whenever any row changes ─────────────────────────────
+document.querySelectorAll('.rp-mapping-row select, .rp-mapping-row input')
+  .forEach(el => el.addEventListener('change', applyMapping));
+
+// ── Start Task footer button ───────────────────────────────────────────────
+document.getElementById('btn-start-task').addEventListener('click', () => {
+  _post('/api/industry/start', { mapping: _collectMapping() });
+});
+</script>
+{% endblock %}
