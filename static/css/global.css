@@ -1,38 +1,45 @@
-/* ─── Reset & base ──────────────────────────────────────────────────────── */
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+/*  Reset & base  */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
 
 :root {
-  --bg-root:       #0d0f14;
-  --bg-panel:      #13161e;
-  --bg-sidebar:    #0f1117;
-  --bg-card:       #1a1e28;
-  --bg-input:      #1e2230;
-  --border:        #252a38;
-  --border-light:  #2e3447;
+  --bg-root: #0d0f14;
+  --bg-panel: #13161e;
+  --bg-sidebar: #0f1117;
+  --bg-card: #1a1e28;
+  --bg-input: #1e2230;
+  --border: #252a38;
+  --border-light: #2e3447;
 
-  --cyan:          #00d4ff;
-  --cyan-dim:      #00a8cc;
-  --green:         #22c55e;
-  --green-dim:     #16a34a;
-  --red:           #e53e3e;
-  --red-dim:       #b91c1c;
-  --amber:         #f59e0b;
-  --amber-dim:     #b45309;
+  --cyan: #3b82f6;
+  --cyan-dim: #2563eb;
+  --green: #22c55e;
+  --green-dim: #16a34a;
+  --red: #e53e3e;
+  --red-dim: #b91c1c;
+  --amber: #f59e0b;
+  --amber-dim: #b45309;
 
-  --text-primary:  #e2e8f0;
-  --text-secondary:#8b98b4;
-  --text-muted:    #4a5568;
+  --text-primary: #e2e8f0;
+  --text-secondary: #8b98b4;
+  --text-muted: #4a5568;
 
-  --topbar-h:      56px;
-  --sidebar-w:     120px;
-  --statusbar-h:   36px;
-  --right-w:       320px;
+  --topbar-h: 56px;
+  --sidebar-w: 120px;
+  --statusbar-h: 36px;
+  --right-w: 320px;
 
   --font: 'Inter', 'Segoe UI', system-ui, sans-serif;
   --font-mono: 'JetBrains Mono', 'Consolas', monospace;
 }
 
-html, body {
+html,
+body {
   height: 100%;
   background: var(--bg-root);
   color: var(--text-primary);
@@ -41,7 +48,7 @@ html, body {
   overflow: hidden;
 }
 
-/* ─── App shell grid ────────────────────────────────────────────────────── */
+/*  App shell grid  */
 .app-shell {
   display: grid;
   grid-template-rows: var(--topbar-h) 1fr var(--statusbar-h);
@@ -54,7 +61,7 @@ html, body {
   width: 100vw;
 }
 
-/* ─── Topbar ────────────────────────────────────────────────────────────── */
+/*  Topbar  */
 .topbar {
   grid-area: topbar;
   background: var(--bg-panel);
@@ -132,21 +139,32 @@ html, body {
   border-color: rgba(34, 197, 94, 0.35);
   color: var(--green);
 }
-.pill--robot .pill-dot { background: var(--green); box-shadow: 0 0 6px var(--green); }
+
+.pill--robot .pill-dot {
+  background: var(--green);
+  box-shadow: 0 0 6px var(--green);
+}
 
 .pill--estop {
   background: rgba(229, 62, 62, 0.12);
   border-color: rgba(229, 62, 62, 0.35);
   color: var(--red);
 }
-.pill--estop .pill-dot { background: var(--red); box-shadow: 0 0 6px var(--red); }
+
+.pill--estop .pill-dot {
+  background: var(--red);
+  box-shadow: 0 0 6px var(--red);
+}
 
 .pill--gripper {
   background: rgba(245, 158, 11, 0.12);
   border-color: rgba(245, 158, 11, 0.35);
   color: var(--amber);
 }
-.pill--gripper .pill-dot { background: var(--amber); }
+
+.pill--gripper .pill-dot {
+  background: var(--amber);
+}
 
 .topbar-actions {
   margin-left: auto;
@@ -166,11 +184,22 @@ html, body {
   justify-content: center;
   transition: background 0.15s;
 }
-.icon-btn:hover { background: var(--bg-card); }
-.icon-btn img { width: 18px; height: 18px; opacity: 0.6; }
-.icon-btn:hover img { opacity: 1; }
 
-/* ─── Sidebar ───────────────────────────────────────────────────────────── */
+.icon-btn:hover {
+  background: var(--bg-card);
+}
+
+.icon-btn img {
+  width: 18px;
+  height: 18px;
+  opacity: 0.6;
+}
+
+.icon-btn:hover img {
+  opacity: 1;
+}
+
+/*  Sidebar  */
 .sidebar {
   grid-area: sidebar;
   background: var(--bg-sidebar);
@@ -191,7 +220,7 @@ html, body {
   padding: 14px 8px;
   text-decoration: none;
   color: var(--text-secondary);
-  border-left: 3px solid transparent;
+  border-right: 3px solid transparent;
   transition: color 0.15s, background 0.15s, border-color 0.15s;
   position: relative;
   cursor: pointer;
@@ -203,9 +232,9 @@ html, body {
 }
 
 .nav-item.active {
-  background: var(--bg-card);
-  border-left-color: var(--cyan);
-  color: var(--cyan);
+  background: rgba(59, 130, 246, 0.1);
+  border-right-color: var(--cyan);
+  color: #ffffff;
 }
 
 .nav-item .nav-icon {
@@ -246,9 +275,11 @@ html, body {
   opacity: 0.7;
 }
 
-.sidebar-spacer { flex: 1; }
+.sidebar-spacer {
+  flex: 1;
+}
 
-/* ─── Main area (camera panel) ──────────────────────────────────────────── */
+/*  Main area (camera panel)  */
 .main-area {
   grid-area: main;
   display: flex;
@@ -259,7 +290,7 @@ html, body {
   gap: 8px;
 }
 
-/* ─── Camera panel ──────────────────────────────────────────────────────── */
+/*  Camera panel  */
 .camera-panel {
   background: var(--bg-panel);
   border: 1px solid var(--border);
@@ -311,8 +342,15 @@ html, body {
 }
 
 @keyframes pulse-green {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
+
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.5;
+  }
 }
 
 .camera-viewport {
@@ -347,22 +385,26 @@ html, body {
 }
 
 .camera-viewport::before {
-  top: 10px; left: 10px;
+  top: 10px;
+  left: 10px;
   border-width: 2px 0 0 2px;
 }
 
 .camera-viewport::after {
-  top: 10px; right: 10px;
+  top: 10px;
+  right: 10px;
   border-width: 2px 2px 0 0;
 }
 
 .camera-corner-br {
-  bottom: 10px; right: 10px;
+  bottom: 10px;
+  right: 10px;
   border-width: 0 2px 2px 0;
 }
 
 .camera-corner-bl {
-  bottom: 10px; left: 10px;
+  bottom: 10px;
+  left: 10px;
   border-width: 0 0 2px 2px;
 }
 
@@ -374,13 +416,16 @@ html, body {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  background: rgba(0,0,0,0.7);
+  background: rgba(0, 0, 0, 0.7);
   z-index: 3;
   gap: 10px;
   transition: opacity 0.4s;
 }
 
-.stream-overlay.hidden { opacity: 0; pointer-events: none; }
+.stream-overlay.hidden {
+  opacity: 0;
+  pointer-events: none;
+}
 
 .stream-overlay-text {
   font-size: 11px;
@@ -398,9 +443,13 @@ html, body {
   animation: spin 0.8s linear infinite;
 }
 
-@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
 
-/* ─── Detection log strip ────────────────────────────────────────────────── */
+/*  Detection log strip  */
 .detection-log {
   background: var(--bg-card);
   border-top: 1px solid var(--border);
@@ -427,9 +476,11 @@ html, body {
   gap: 2px 16px;
 }
 
-.detection-log-entries .entry { color: var(--cyan-dim); }
+.detection-log-entries .entry {
+  color: var(--cyan-dim);
+}
 
-/* ─── Right panel ───────────────────────────────────────────────────────── */
+/*  Right panel  */
 .right-panel {
   grid-area: right;
   background: var(--bg-panel);
@@ -440,9 +491,18 @@ html, body {
   overflow-x: hidden;
 }
 
-.right-panel::-webkit-scrollbar { width: 4px; }
-.right-panel::-webkit-scrollbar-track { background: transparent; }
-.right-panel::-webkit-scrollbar-thumb { background: var(--border-light); border-radius: 2px; }
+.right-panel::-webkit-scrollbar {
+  width: 4px;
+}
+
+.right-panel::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.right-panel::-webkit-scrollbar-thumb {
+  background: var(--border-light);
+  border-radius: 2px;
+}
 
 .right-panel-title {
   font-size: 11px;
@@ -483,21 +543,25 @@ html, body {
 /* Shared dropdown — used by industry, settings, etc. */
 .rp-select {
   width: 100%;
-  background: var(--bg-input);
-  border: 1px solid var(--border-light);
+  background: #171b26;
+  border: 1px solid #1a1e28;
   border-radius: 4px;
   color: var(--text-primary);
   font-family: var(--font);
   font-size: 12px;
   letter-spacing: 0.04em;
-  padding: 9px 28px 9px 10px;
+  padding: 10px 28px 10px 12px;
   appearance: none;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%238b98b4'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: right 10px center;
   cursor: pointer;
 }
-.rp-select:focus { outline: none; border-color: var(--cyan-dim); }
+
+.rp-select:focus {
+  outline: none;
+  border-color: var(--cyan-dim);
+}
 
 /* Shared dark-blue action button — industry (Apply), settings (Deploy / Init) */
 .rp-action-btn {
@@ -506,11 +570,11 @@ html, body {
   align-items: center;
   justify-content: center;
   gap: 10px;
-  padding: 13px 10px;
-  background: #1a2a4a;
-  border: 1px solid #2a4a8a;
+  padding: 14px 10px;
+  background: #1d2b45;
+  border: 1px solid #1d2b45;
   border-radius: 4px;
-  color: #6ea8fe;
+  color: #ffffff;
   font-family: var(--font);
   font-size: 11px;
   font-weight: 700;
@@ -519,10 +583,27 @@ html, body {
   cursor: pointer;
   transition: filter 0.15s, transform 0.1s;
 }
-.rp-action-btn img { width: 15px; height: 15px; opacity: 0.8; flex-shrink: 0; }
-.rp-action-btn .rp-action-btn-icon { font-size: 15px; line-height: 1; flex-shrink: 0; }
-.rp-action-btn:hover  { filter: brightness(1.2); }
-.rp-action-btn:active { transform: scale(0.98); }
+
+.rp-action-btn img {
+  width: 15px;
+  height: 15px;
+  opacity: 0.8;
+  flex-shrink: 0;
+}
+
+.rp-action-btn .rp-action-btn-icon {
+  font-size: 15px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.rp-action-btn:hover {
+  filter: brightness(1.2);
+}
+
+.rp-action-btn:active {
+  transform: scale(0.98);
+}
 
 /* Placeholder fill */
 .rp-placeholder {
@@ -542,7 +623,7 @@ html, body {
   border-radius: 4px;
 }
 
-/* ─── Right panel footer buttons ────────────────────────────────────────── */
+/*  Right panel footer buttons  */
 .right-panel-footer {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -566,23 +647,31 @@ html, body {
   transition: background 0.15s, transform 0.1s;
 }
 
-.btn:active { transform: scale(0.97); }
+.btn:active {
+  transform: scale(0.97);
+}
 
 .btn--start {
-  background: rgba(34, 197, 94, 0.12);
-  border: 1px solid var(--green);
-  color: var(--green);
+  background: #143b23;
+  border: 1px solid #1c6136;
+  color: #4ade80;
 }
-.btn--start:hover { background: rgba(34, 197, 94, 0.2); }
+
+.btn--start:hover {
+  background: #164728;
+}
 
 .btn--stop {
-  background: rgba(185, 28, 28, 0.25);
-  border: 1px solid var(--red);
+  background: #4a1616;
+  border: 1px solid #751a1a;
   color: #f87171;
 }
-.btn--stop:hover { background: rgba(185, 28, 28, 0.38); }
 
-/* ─── Shared diagram widget (industry + food) ───────────────────────────── */
+.btn--stop:hover {
+  background: #571717;
+}
+
+/*  Shared diagram widget (industry + food)  */
 .rp-diagram {
   width: 100%;
   border-radius: 4px;
@@ -594,7 +683,13 @@ html, body {
   justify-content: center;
   min-height: 110px;
 }
-.rp-diagram img { width: 100%; height: auto; display: block; }
+
+.rp-diagram img {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
 .rp-diagram-placeholder {
   color: var(--text-muted);
   font-size: 10px;
@@ -605,7 +700,7 @@ html, body {
   text-align: center;
 }
 
-/* ─── Status bar ────────────────────────────────────────────────────────── */
+/*  Status bar  */
 .statusbar {
   grid-area: statusbar;
   background: var(--bg-card);
@@ -627,12 +722,18 @@ html, body {
   gap: 20px;
 }
 
-.statusbar span { display: flex; gap: 4px; }
+.statusbar span {
+  display: flex;
+  gap: 4px;
+}
 
 .statusbar .val {
   color: var(--cyan);
   font-weight: 600;
 }
 
-/* ─── Scrollbar (global) ────────────────────────────────────────────────── */
-* { scrollbar-width: thin; scrollbar-color: var(--border-light) transparent; }
+/*  Scrollbar (global)  */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-light) transparent;
+}

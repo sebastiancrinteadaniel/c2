@@ -10,13 +10,13 @@ class CameraSettings(BaseSettings):
 
     Three independent resolution groups:
 
-      capture  — physical resolution the camera grabs.
+      capture  - physical resolution the camera grabs.
                  This is the quality ceiling; everything else is derived downward.
 
-      infer    — resolution of the frame written to `latest_bgr_infer`.
+      infer    - resolution of the frame written to `latest_bgr_infer`.
                  Should always be ≤ capture. CV / object-detection reads here.
 
-      display  — resolution encoded and sent over WebRTC to the browser.
+      display  - resolution encoded and sent over WebRTC to the browser.
                  Defaults to capture so there is zero resize and zero quality loss.
 
     All values can be overridden via environment variables or a .env file.
@@ -39,24 +39,24 @@ class CameraSettings(BaseSettings):
         extra="ignore",
     )
 
-    # ── Capture ───────────────────────────────────────────────────────────
+    #  Capture 
     capture_width:  int = 1920
     capture_height: int = 1080
 
-    # ── Inference ─────────────────────────────────────────────────────────
+    #  Inference 
     infer_width:  int = 640
     infer_height: int = 640
 
-    # ── Display (WebRTC stream) ───────────────────────────────────────────
-    # -1 means "same as capture" — resolved in the validator below
+    #  Display (WebRTC stream) 
+    # -1 means "same as capture" - resolved in the validator below
     display_width:  int = -1
     display_height: int = -1
 
-    # ── Misc ──────────────────────────────────────────────────────────────
+    #  Misc 
     camera_fps:   int = 60
     camera_index: int = 0
 
-    # ── WebRTC encoder bandwidth hint ─────────────────────────────────────
+    #  WebRTC encoder bandwidth hint 
     webrtc_video_kbps: int = 4000
 
     @model_validator(mode="after")
@@ -67,7 +67,7 @@ class CameraSettings(BaseSettings):
             self.display_height = self.capture_height
         return self
 
-    # ── Derived helpers ───────────────────────────────────────────────────
+    #  Derived helpers 
     @property
     def need_infer_resize(self) -> bool:
         return (self.infer_width != self.capture_width) or (

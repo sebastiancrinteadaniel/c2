@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 
-{% block page_styles %}<link rel="stylesheet" href="/static/css/pages/healthcare.css" />{% endblock %}
+{% block page_styles %}
+<link rel="stylesheet" href="/static/css/pages/healthcare.css" />{% endblock %}
 
 {% block page_title %}Healthcare — Medical{% endblock %}
 
@@ -14,23 +15,39 @@
 
 {% block right_panel %}
 
-{# ── PRESCRIPTION ENTRY ───────────────────────────────────────────────── #}
+{# PRESCRIPTION ENTRY #}
 <div class="rp-section">
   <div class="rp-section-header">Prescription Entry</div>
   <div class="hc-rx-image">
-    <img src="/static/img/rx-placeholder.jpg" alt="RX Document"
-         onerror="this.style.display='none'" />
-    <div class="hc-rx-image__overlay">
-      <span class="hc-rx-label">RX Document Loaded</span>
-      <button class="hc-inspect-btn" id="btn-inspect" onclick="inspectRx()">
-        <!-- <img src="/static/svg/icon-inspect.svg" alt="" onerror="this.style.display='none'" /> -->
-        Inspect
-      </button>
+    <div class="hc-rx-empty" id="hc-rx-empty" onclick="loadRx()">
+      <div class="hc-rx-upload-icon">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+          stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+          <polyline points="17 8 12 3 7 8"></polyline>
+          <line x1="12" y1="3" x2="12" y2="15"></line>
+        </svg>
+      </div>
+      <span>READ PRESCRIPTION (OCR)</span>
+    </div>
+    <div id="hc-rx-loaded" style="display:none; width:100%; height:100%;">
+      <img src="/static/img/rx-placeholder.jpg" alt="RX Document" onerror="this.style.display='none'" />
+      <div class="hc-rx-image__overlay">
+        <span class="hc-rx-label"><span class="hc-rx-dot"></span>RX Document Loaded</span>
+        <button class="hc-inspect-btn" id="btn-inspect" onclick="inspectRx()">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
+          Inspect
+        </button>
+      </div>
     </div>
   </div>
 </div>
 
-{# ── VERIFICATION MATRIX ─────────────────────────────────────────────── #}
+{# VERIFICATION MATRIX #}
 <div class="rp-section">
   <div class="rp-section-header">Verification Matrix</div>
   <div class="hc-matrix" id="hc-matrix">
@@ -68,16 +85,16 @@
   </div>
 </div>
 
-{# ── INJECTION LENGTH ────────────────────────────────────────────────── #}
+{# INJECTION LENGTH #}
 <div class="rp-section">
   <div class="hc-injection-header">
     <div class="rp-section-header" style="border:none;padding:0">Injection Length (mm)</div>
     <span class="hc-injection-val" id="hc-inj-val">80 MM</span>
   </div>
-  <input type="range" class="hc-slider" id="hc-inj-slider"
-         min="0" max="200" value="80" />
+  <input type="range" class="hc-slider" id="hc-inj-slider" min="0" max="200" value="80" />
   <div class="hc-diagram-syringe">
-    <img src="/static/svg/hc-syringe.svg" alt="Syringe diagram"onerror="this.outerHTML=&quot;<span class=hc-diagram-syringe-placeholder>syringe diagram</span>&quot;" />
+    <img src="/static/svg/hc-syringe.svg" alt="Syringe diagram"
+      onerror="this.outerHTML=&quot;<span class=hc-diagram-syringe-placeholder>syringe diagram</span>&quot;" />
   </div>
 </div>
 
@@ -85,34 +102,56 @@
 
 {% block page_scripts %}
 <script>
-// ── Slider ─────────────────────────────────────────────────────────────────
-const _slider = document.getElementById('hc-inj-slider');
-const _val    = document.getElementById('hc-inj-val');
+  //  Slider 
+  const _slider = document.getElementById('hc-inj-slider');
+  const _val = document.getElementById('hc-inj-val');
 
-function _updateSlider() {
-  const pct = ((_slider.value - _slider.min) / (_slider.max - _slider.min) * 100).toFixed(1);
-  _slider.style.setProperty('--pct', pct + '%');
-  _val.textContent = _slider.value + ' MM';
-}
-_slider.addEventListener('input', _updateSlider);
-_updateSlider();
-
-// ── Inspect ────────────────────────────────────────────────────────────────
-async function inspectRx() {
-  const btn = document.getElementById('btn-inspect');
-  const original = btn.innerHTML;
-  btn.disabled = true;
-  btn.textContent = 'Scanning…';
-  try {
-    const res = await fetch('/api/healthcare/inspect', { method: 'POST' });
-    const data = await res.json();
-    console.log('[healthcare] inspect:', data);
-  } catch (err) {
-    console.error('[healthcare] inspect error:', err);
-  } finally {
-    btn.disabled = false;
-    btn.innerHTML = original;
+  function _updateSlider() {
+    const pct = ((_slider.value - _slider.min) / (_slider.max - _slider.min) * 100).toFixed(1);
+    _slider.style.setProperty('--pct', pct + '%');
+    _val.textContent = _slider.value + ' MM';
   }
-}
+  _slider.addEventListener('input', _updateSlider);
+  _updateSlider();
+
+  //  Inspect 
+  async function inspectRx() {
+    const btn = document.getElementById('btn-inspect');
+    const original = btn.innerHTML;
+    btn.disabled = true;
+    btn.textContent = 'Scanning…';
+    try {
+      const res = await fetch('/api/healthcare/inspect', { method: 'POST' });
+      const data = await res.json();
+      console.log('[healthcare] inspect:', data);
+    } catch (err) {
+      console.error('[healthcare] inspect error:', err);
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = original;
+    }
+  }
+
+  function loadRx() {
+    document.getElementById('hc-rx-empty').style.display = 'none';
+    document.getElementById('hc-rx-loaded').style.display = 'block';
+  }
+
+  //  Footer Start Task binding 
+  const startBtn = document.getElementById('btn-start-task');
+  if (startBtn) {
+    startBtn.addEventListener('click', async () => {
+      const length = parseInt(document.getElementById('hc-inj-slider').value, 10);
+      try {
+        await fetch('/api/healthcare/start', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ injection_length: length })
+        });
+      } catch (err) {
+        console.error('Failed to start healthcare task:', err);
+      }
+    });
+  }
 </script>
 {% endblock %}

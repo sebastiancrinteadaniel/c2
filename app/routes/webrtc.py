@@ -1,16 +1,12 @@
-"""
-WebRTC signaling route.
-POST /api/offer  — browser sends its SDP offer, server replies with answer.
-"""
-
 import asyncio
-import json
 
 from aiortc import RTCPeerConnection, RTCSessionDescription
 from fastapi import APIRouter
 from pydantic import BaseModel
 
 from app.services.camera import get_camera_track
+from app.config.camera import get_camera_settings
+
 
 router = APIRouter()
 
@@ -33,7 +29,7 @@ async def handle_offer(body: OfferBody):
     @pc.on("connectionstatechange")
     async def on_state_change():
         state = pc.connectionState
-        print(f"[webrtc] Connection state → {state}")
+        print(f"[webrtc] Connection state -> {state}")
         if state in ("failed", "closed", "disconnected"):
             await pc.close()
             _peer_connections.discard(pc)
@@ -52,7 +48,6 @@ async def handle_offer(body: OfferBody):
     # Inject bandwidth hint into the video m-section so VP8 targets the
     # configured bitrate. aiortc has no public bitrate API so SDP patching
     # is the reliable approach.
-    from app.config.camera import get_camera_settings
     patched_sdp = _inject_bandwidth(
         pc.localDescription.sdp,
         kbps=get_camera_settings().webrtc_video_kbps,
@@ -67,7 +62,7 @@ async def handle_offer(body: OfferBody):
 def _inject_bandwidth(sdp: str, kbps: int) -> str:
     """
     Insert  b=AS:<kbps>  into every video m-section of an SDP string.
-    This hints to the encoder that it can use up to <kbps> kbps — critical
+    This hints to the encoder that it can use up to <kbps> kbps - critical
     for getting decent quality on LAN where bandwidth is not the bottleneck.
     """
     lines = sdp.splitlines()
@@ -112,7 +107,7 @@ async def _wait_for_ice(pc: RTCPeerConnection, timeout: float = 5.0) -> None:
     try:
         await asyncio.wait_for(done, timeout=timeout)
     except asyncio.TimeoutError:
-        print("[webrtc] ICE gathering timed out — sending partial candidates")
+        print("[webrtc] ICE gathering timed out - sending partial candidates")
 
 
 async def close_all_connections() -> None:

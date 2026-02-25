@@ -12,7 +12,7 @@
 <body>
 <div class="app-shell">
 
-  {# ── Topbar ────────────────────────────────────────────────────────── #}
+  {#  Topbar  #}
   <header class="topbar">
     <div class="topbar-logo">
       {# Drop logo.svg into static/svg/ and it will appear automatically #}
@@ -50,10 +50,10 @@
     </div>
   </header>
 
-  {# ── Sidebar ───────────────────────────────────────────────────────── #}
+  {#  Sidebar  #}
   {% include "partials/sidebar.html" %}
 
-  {# ── Main (camera) ─────────────────────────────────────────────────── #}
+  {#  Main (camera)  #}
   <main class="main-area">
     <div class="camera-panel">
 
@@ -95,7 +95,7 @@
     </div>
   </main>
 
-  {# ── Right panel ───────────────────────────────────────────────────── #}
+  {#  Right panel  #}
   <aside class="right-panel">
     <div class="right-panel-title">{% block right_panel_title %}{% endblock %}</div>
     <div class="right-panel-body">
@@ -109,7 +109,7 @@
     </div>
   </aside>
 
-  {# ── Status bar ────────────────────────────────────────────────────── #}
+  {#  Status bar  #}
   <footer class="statusbar">
     <div class="statusbar-left">
       <span>LATENCY: <span class="val" id="status-latency">--</span></span>

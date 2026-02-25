@@ -13,14 +13,14 @@ from app.routes.pages._shared import _render
 router = APIRouter()
 
 
-# ── Page ──────────────────────────────────────────────────────────────────
+#  Page 
 
 @router.get("/interactive", response_class=HTMLResponse)
 async def interactive_page(request: Request):
     return _render(request, "interactive", "pages/interactive.html")
 
 
-# ── Models ────────────────────────────────────────────────────────────────
+#  Models 
 
 class DetectionToggle(BaseModel):
     enabled: bool
@@ -33,13 +33,13 @@ class StartPayload(BaseModel):
     detection: bool
 
 
-# ── API ───────────────────────────────────────────────────────────────────
+#  API 
 
 @router.post("/api/interactive/detection")
 async def interactive_detection(payload: DetectionToggle):
     """Toggle hand-gesture detection on/off."""
     state = "ENABLED" if payload.enabled else "DISABLED"
-    print(f"\n[interactive] Detection → {state}")
+    print(f"\n[interactive] Detection -> {state}")
     # TODO: start/stop gesture detection service
     return {"status": "ok", "enabled": payload.enabled}
 
@@ -57,6 +57,11 @@ async def interactive_targets(payload: TargetsPayload):
 @router.post("/api/interactive/start")
 async def interactive_start(payload: StartPayload):
     """Start the interactive task with current configuration."""
-    print(f"\n[interactive] ▶ START — detection:{payload.detection}  targets:{payload.targets}")
+    print("\n" + "="*40)
+    print("[interactive] > START TASK TRIGGERED")
+    print("="*40)
+    print(f"  Detection Active: {payload.detection}")
+    print(f"  Targets Order:    {payload.targets}")
+    print("="*40 + "\n")
     # TODO: trigger robot interactive sequence
     return {"status": "started"}

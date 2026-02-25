@@ -1,18 +1,3 @@
-"""
-Detector service — runs YOLOv8 inference on a background thread.
-
-Design
-------
-* Reads `camera.latest_bgr_infer` (the small infer-resolution BGR frame).
-* Uses `camera.infer_frame_id` to skip frames that haven't changed since the
-  last inference pass, so no CPU/GPU cycles are wasted when the camera reader
-  hasn't produced a new frame yet.
-* Stores results in `latest_detections` as a list of normalised dicts
-  (coordinates in 0-1 range relative to infer resolution) so they can be
-  scaled to any display size without needing to know it here.
-* Thread-safe: list is replaced atomically (single Python reference swap).
-"""
-
 from __future__ import annotations
 
 import threading
@@ -20,6 +5,9 @@ import time
 from typing import Optional
 
 from app.config.detector import DetectorSettings, get_detector_settings
+from ultralytics import YOLO
+from app.services.camera import set_detection_provider
+from app.services.camera import get_camera_track
 
 
 # Detection dict shape:
@@ -41,7 +29,7 @@ class DetectorService:
         self._cfg = cfg
 
         if not cfg.detector_enabled:
-            print("[detector] Disabled via config — skipping model load")
+            print("[detector] Disabled via config - skipping model load")
             return
 
         self._running = True
@@ -55,16 +43,13 @@ class DetectorService:
         self.latest_detections = []
         print("[detector] Stopped")
 
-    # ── Background thread ──────────────────────────────────────────────────
 
     def _load_and_run(self) -> None:
         cfg = self._cfg
         try:
-            from ultralytics import YOLO
             self._model = YOLO(cfg.model_path)
-            # Warm up: sets device, compiles if TensorRT
             print(
-                f"[detector] YOLOv8 ready — model:{cfg.model_path}  "
+                f"[detector] YOLOv8 ready - model:{cfg.model_path}  "
                 f"conf:{cfg.confidence}  device:{self._model.device}"
             )
         except Exception as exc:
@@ -73,14 +58,11 @@ class DetectorService:
             return
 
         # Register ourselves as the provider so camera.py draws our boxes
-        from app.services.camera import set_detection_provider
         set_detection_provider(lambda: self.latest_detections)
 
         self._inference_loop()
 
     def _inference_loop(self) -> None:
-        from app.services.camera import get_camera_track
-
         cfg = self._cfg
         skip = max(0, cfg.infer_skip_frames)
         device = cfg.device if cfg.device else None
@@ -93,7 +75,7 @@ class DetectorService:
             frame_id = camera.infer_frame_id
             frame    = camera.latest_bgr_infer
 
-            # ── Frame-skip logic ──────────────────────────────────────────
+            #  Frame-skip logic 
             if frame is None or frame_id == last_frame_id:
                 time.sleep(0.005)
                 continue
@@ -108,11 +90,11 @@ class DetectorService:
 
             last_frame_id = frame_id
 
-            # ── Copy frame so camera thread can overwrite safely ──────────
+            #  Copy frame so camera thread can overwrite safely 
             frame = frame.copy()
             h, w = frame.shape[:2]
 
-            # ── Run inference ─────────────────────────────────────────────
+            #  Run inference 
             try:
                 results = self._model(
                     frame,
@@ -126,7 +108,7 @@ class DetectorService:
                 time.sleep(0.1)
                 continue
 
-            # ── Parse results → normalised detections ─────────────────────
+            #  Parse results -> normalised detections 
             detections: list[Detection] = []
             for result in results:
                 boxes = result.boxes
@@ -149,7 +131,7 @@ class DetectorService:
             self.latest_detections = detections
 
 
-# ── Singleton ──────────────────────────────────────────────────────────────
+#  Singleton 
 _detector: Optional[DetectorService] = None
 
 

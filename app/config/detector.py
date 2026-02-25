@@ -33,7 +33,7 @@ class DetectorSettings(BaseSettings):
     device:              str   = ""         # "" = ultralytics auto-select
     infer_skip_frames:   int   = 0          # run every N+1 frames
 
-    # Bounding box overlay colour (BGR) — defaults to dashboard cyan
+    # Bounding box overlay colour (BGR) - defaults to dashboard cyan
     box_color_b: int = 0
     box_color_g: int = 212
     box_color_r: int = 255

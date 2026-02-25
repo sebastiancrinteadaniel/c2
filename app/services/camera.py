@@ -1,36 +1,3 @@
-"""
-Camera service: opens cv2.VideoCapture once at startup and shares
-frames with every WebRTC peer connection via a singleton track instance.
-
-Three independent resolutions, all controlled by env vars:
-
-  CAPTURE_WIDTH / CAPTURE_HEIGHT   — physical camera capture resolution.
-                                      This is the quality ceiling for everything.
-                                      Default: 1280 × 720
-
-  INFER_WIDTH   / INFER_HEIGHT     — size of the frame written to latest_bgr_infer.
-                                      CV / object detection reads this.
-                                      Always downscaled from the capture frame.
-                                      Default: 640 × 640
-
-  DISPLAY_WIDTH / DISPLAY_HEIGHT   — size sent over WebRTC to the browser.
-                                      Resized from the capture frame (not inference).
-                                      Default: same as CAPTURE (no resize, no loss)
-
-  CAMERA_FPS    — target frame-rate.  Default: 30
-  CAMERA_INDEX  — device index.       Default: 0
-
-Per-frame pipeline:
-
-  camera.read()  →  capture BGR  (CAPTURE res)
-        │
-        ├─ resize ──►  latest_bgr_infer  (INFER res)   ← CV inference reads here
-        │
-        └─ resize ──►  display BGR  (DISPLAY res)
-                │
-                └─ BGR→RGB → av.VideoFrame → WebRTC queue
-"""
-
 from __future__ import annotations
 
 import asyncio
@@ -44,11 +11,13 @@ import cv2
 from aiortc import MediaStreamTrack
 
 from app.config.camera import CameraSettings, get_camera_settings
+from app.config.detector import get_detector_settings
+
 
 VIDEO_CLOCK_RATE = 90000
 VIDEO_TIME_BASE  = fractions.Fraction(1, VIDEO_CLOCK_RATE)
 
-# ── Detection provider (set by detector service to avoid circular imports) ──
+#  Detection provider (set by detector service to avoid circular imports) 
 _detection_provider = None
 
 
@@ -62,7 +31,6 @@ def _draw_detections(frame, detections: list, w: int, h: int) -> None:
     """Draw bounding boxes in-place on a BGR frame (display resolution)."""
     if not detections:
         return
-    from app.config.detector import get_detector_settings
     cfg = get_detector_settings()
     color = (cfg.box_color_b, cfg.box_color_g, cfg.box_color_r)
     for d in detections:
@@ -87,7 +55,7 @@ class CameraStreamTrack(MediaStreamTrack):
     ----------
     latest_bgr_infer : np.ndarray | None
         Most recent BGR frame at INFER resolution.
-        CV inference reads this — copy it if you need to hold the array
+        CV inference reads this - copy it if you need to hold the array
         beyond a single frame interval.
     """
 
@@ -129,7 +97,7 @@ class CameraStreamTrack(MediaStreamTrack):
         self._thread = threading.Thread(target=self._reader, daemon=True)
         self._thread.start()
 
-        print(f"[camera] Started — {cfg.summary()}")
+        print(f"[camera] Started - {cfg.summary()}")
 
     def stop_capture(self) -> None:
         """Stop the background thread and release the camera."""
@@ -152,7 +120,7 @@ class CameraStreamTrack(MediaStreamTrack):
                 time.sleep(interval)
                 continue
 
-            # ── Inference copy (downscaled from capture) ──────────────────
+            #  Inference copy (downscaled from capture) 
             self.latest_bgr_infer = (
                 cv2.resize(
                     bgr,
@@ -163,7 +131,7 @@ class CameraStreamTrack(MediaStreamTrack):
             )
             self._infer_frame_id += 1
 
-            # ── Display copy (resized from capture for WebRTC) ────────────
+            #  Display copy (resized from capture for WebRTC) 
             display_bgr = (
                 cv2.resize(
                     bgr,
@@ -174,14 +142,14 @@ class CameraStreamTrack(MediaStreamTrack):
             )
             self.latest_bgr_display = display_bgr
 
-            # ── Draw detections (if detector is running) ──────────────────
+            #  Draw detections (if detector is running) 
             if _detection_provider is not None:
                 dets = _detection_provider()
                 if dets:
                     dh, dw = display_bgr.shape[:2]
                     _draw_detections(display_bgr, dets, dw, dh)
 
-            # ── BGR → RGB → av.VideoFrame ─────────────────────────────────
+            #  BGR -> RGB -> av.VideoFrame 
             rgb = cv2.cvtColor(display_bgr, cv2.COLOR_BGR2RGB)
             frame = av.VideoFrame.from_ndarray(rgb, format="rgb24")
 
@@ -212,7 +180,7 @@ class CameraStreamTrack(MediaStreamTrack):
         return await self._queue.get()
 
 
-# ── Singleton ──────────────────────────────────────────────────────────────
+#  Singleton 
 _camera_track: Optional[CameraStreamTrack] = None
 
 

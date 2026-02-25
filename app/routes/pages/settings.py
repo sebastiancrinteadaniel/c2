@@ -11,14 +11,14 @@ from app.routes.pages._shared import _render
 router = APIRouter()
 
 
-# ── Page ──────────────────────────────────────────────────────────────────
+#  Page 
 
 @router.get("/settings", response_class=HTMLResponse)
 async def settings_page(request: Request):
     return _render(request, "settings", "pages/settings.html")
 
 
-# ── Models ────────────────────────────────────────────────────────────────
+#  Models 
 
 class ModelDeploy(BaseModel):
     model: str
@@ -27,7 +27,7 @@ class ArmInit(BaseModel):
     port: str = ""
 
 
-# ── API ───────────────────────────────────────────────────────────────────
+#  API 
 
 @router.post("/api/settings/deploy-physical")
 async def deploy_physical(payload: ModelDeploy):
@@ -51,3 +51,10 @@ async def initialize_arm(payload: ArmInit):
     print(f"\n[settings] Initialize Arm \u2014 port:{payload.port or 'auto'}")
     # TODO: connect to MyCobot via pymycobot
     return {"status": "initialized", "port": payload.port}
+
+@router.post("/api/settings/init")
+async def initialize_arm_basic():
+    """Initialize the robotic arm from the main Initialize Arm button."""
+    print("\n[settings] > INITIALIZING ARM to safe zero position")
+    #  TODO: send zero position commands 
+    return {"status": "initialized"}

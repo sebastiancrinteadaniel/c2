@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 
-{% block page_styles %}<link rel="stylesheet" href="/static/css/pages/industry.css" />{% endblock %}
+{% block page_styles %}
+<link rel="stylesheet" href="/static/css/pages/industry.css" />{% endblock %}
 
 {% block page_title %}Industry 5.0 — Sorting{% endblock %}
 
@@ -13,7 +14,7 @@
 {% endblock %}
 
 {% block right_panel %}
-{# ── SORTING PROFILES ─────────────────────────────────────────── #}
+{# SORTING PROFILES #}
 <div class="rp-section">
   <div class="rp-section-header">Sorting Profiles</div>
   <select class="rp-select" id="profile-select">
@@ -35,98 +36,139 @@
   </div>
 </div>
 
-{# ── PART TO BIN MAPPING ────────────────────────────────────── #}
+{# PART TO BIN MAPPING #}
 <div class="rp-section">
   <div class="rp-section-header">Part to Bin Mapping</div>
 
   <div class="rp-mapping-row">
-    <select class="rp-select"><option value="">Select</option><option>Screw</option><option>Bolt</option><option>Gear (24T)</option><option>Gear (12T)</option></select>
+    <select class="rp-select">
+      <option value="">Select</option>
+      <option>Screw</option>
+      <option>Bolt</option>
+      <option>Gear (24T)</option>
+      <option>Gear (12T)</option>
+    </select>
     <input type="number" class="rp-number" value="0" min="0" max="99" />
   </div>
   <div class="rp-mapping-row">
-    <select class="rp-select"><option value="">Select</option><option>Screw</option><option>Bolt</option><option>Gear (24T)</option><option>Gear (12T)</option></select>
+    <select class="rp-select">
+      <option value="">Select</option>
+      <option>Screw</option>
+      <option>Bolt</option>
+      <option>Gear (24T)</option>
+      <option>Gear (12T)</option>
+    </select>
     <input type="number" class="rp-number" value="0" min="0" max="99" />
   </div>
   <div class="rp-mapping-row">
-    <select class="rp-select"><option value="">Select</option><option>Screw</option><option>Bolt</option><option>Gear (24T)</option><option>Gear (12T)</option></select>
+    <select class="rp-select">
+      <option value="">Select</option>
+      <option>Screw</option>
+      <option>Bolt</option>
+      <option>Gear (24T)</option>
+      <option>Gear (12T)</option>
+    </select>
     <input type="number" class="rp-number" value="0" min="0" max="99" />
   </div>
   <div class="rp-mapping-row">
-    <select class="rp-select"><option value="">Select</option><option>Screw</option><option>Bolt</option><option>Gear (24T)</option><option>Gear (12T)</option></select>
+    <select class="rp-select">
+      <option value="">Select</option>
+      <option>Screw</option>
+      <option>Bolt</option>
+      <option>Gear (24T)</option>
+      <option>Gear (12T)</option>
+    </select>
     <input type="number" class="rp-number" value="0" min="0" max="99" />
   </div>
 </div>
 
-{# ── APPLY BUTTON ───────────────────────────────────────────────── #}
+{# APPLY BUTTON #}
 <button class="rp-action-btn" onclick="applyMapping()">Apply Global Mapping</button>
 
-{# ── DIAGRAM SVG ──────────────────────────────────────────────── #}
+{# DIAGRAM SVG #}
 <div class="rp-diagram">
-  <img src="/static/svg/industry-diagram.svg"
-       alt="Sorting diagram"
-       onerror="this.style.display='none'; this.nextElementSibling.style.display='block';" />
+  <img src="/static/svg/industry-diagram.svg" alt="Sorting diagram"
+    onerror="this.style.display='none'; this.nextElementSibling.style.display='block';" />
   <div class="rp-diagram-placeholder" style="display:none;">Drop industry-diagram.svg into static/svg/</div>
 </div>
 
+{% endblock %}
+
+{% block page_scripts %}
 <script>
-// ── Helpers ────────────────────────────────────────────────────────────────
-function _collectMapping() {
-  const rows = document.querySelectorAll('.rp-mapping-row');
-  const mapping = [];
-  rows.forEach(row => {
-    const part = row.querySelector('select').value;
-    const bin  = parseInt(row.querySelector('input').value, 10);
-    if (part) mapping.push({ part, bin });
-  });
-  return mapping;
-}
-
-async function _post(url, body) {
-  try {
-    const res = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
+  //  Helpers 
+  function _collectMapping() {
+    const rows = document.querySelectorAll('.rp-mapping-row');
+    const mapping = [];
+    rows.forEach(row => {
+      const part = row.querySelector('select').value;
+      const bin = parseInt(row.querySelector('input').value, 10);
+      if (part) mapping.push({ part, bin });
     });
-    return await res.json();
-  } catch (err) {
-    console.error('[industry] fetch error:', err);
+    return mapping;
   }
-}
 
-// ── Profile actions ────────────────────────────────────────────────────────
-function profileAction(action) {
-  const sel = document.getElementById('profile-select');
-  if (action === 'new') {
-    const name = prompt('Profile name:');
-    if (name) {
-      const opt = new Option(name, name.toLowerCase());
-      sel.add(opt);
-      sel.value = opt.value;
+  async function _post(url, body) {
+    try {
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      return await res.json();
+    } catch (err) {
+      console.error('[industry] fetch error:', err);
     }
-  } else if (action === 'save') {
-    if (!sel.value) return alert('Select a profile first.');
-    alert(`Saved: ${sel.options[sel.selectedIndex].text}`);
-  } else if (action === 'delete') {
-    if (!sel.value) return alert('Select a profile first.');
-    if (confirm('Delete this profile?')) sel.remove(sel.selectedIndex);
   }
-}
 
-// ── Apply mapping (APPLY GLOBAL MAPPING button) ────────────────────────────
-function applyMapping() {
-  const mapping = _collectMapping();
-  if (!mapping.length) return alert('No mappings configured.');
-  _post('/api/industry/mapping', { mapping });
-}
+  //  Profile actions 
+  function profileAction(action) {
+    const sel = document.getElementById('profile-select'); // Changed from rp-profiles to profile-select
+    const profileName = sel.options[sel.selectedIndex]?.text || 'Unknown';
 
-// ── Auto-send mapping whenever any row changes ─────────────────────────────
-document.querySelectorAll('.rp-mapping-row select, .rp-mapping-row input')
-  .forEach(el => el.addEventListener('change', applyMapping));
+    if (action === 'new') {
+      const name = prompt('New profile name:');
+      if (name) sel.add(new Option(name, name, true, true));
+    } else if (action === 'save') {
+      if (!sel.value) return alert('Select a profile first.');
+      // Backend will handle the save
+    } else if (action === 'delete') {
+      if (!sel.value) return alert('Select a profile first.');
+      if (confirm(`Delete profile: ${profileName}?`)) {
+        sel.remove(sel.selectedIndex);
+      }
+    }
+  }
 
-// ── Start Task footer button ───────────────────────────────────────────────
-document.getElementById('btn-start-task').addEventListener('click', () => {
-  _post('/api/industry/start', { mapping: _collectMapping() });
-});
+  //  Apply mapping (APPLY GLOBAL MAPPING button) 
+  function applyMapping() {
+    const mapping = _collectMapping();
+    if (!mapping.length) return alert('No mappings configured.');
+    _post('/api/industry/mapping', { mapping });
+  }
+
+  //  Auto-send mapping whenever any row changes 
+  document.querySelectorAll('.rp-mapping-row select, .rp-mapping-row input')
+    .forEach(el => el.addEventListener('change', applyMapping));
+
+  //  Start Task footer button 
+  const startBtn = document.getElementById('btn-start-task');
+  if (startBtn) {
+    startBtn.addEventListener('click', async () => {
+      const mapping = _collectMapping();
+      console.log('[industry] Start Task clicked. Collected mapping:', mapping);
+      try {
+        const res = await fetch('/api/industry/start', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ mapping })
+        });
+        const data = await res.json();
+        console.log('[industry] Start response:', data);
+      } catch (err) {
+        console.error('Failed to start industry task:', err);
+      }
+    });
+  }
 </script>
 {% endblock %}

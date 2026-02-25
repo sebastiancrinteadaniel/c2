@@ -3,7 +3,7 @@
  */
 
 (function () {
-  // ── Clock ────────────────────────────────────────────────────────────────
+  //  Clock 
   const clockEl = document.getElementById('status-time');
 
   function updateClock() {
@@ -18,7 +18,7 @@
   updateClock();
   setInterval(updateClock, 1000);
 
-  // ── FPS counter (reads from the video element via requestVideoFrameCallback)
+  //  FPS counter (reads from the video element via requestVideoFrameCallback)
   const videoEl = document.getElementById('stream');
   const fpsEl = document.getElementById('status-fps');
   const latEl = document.getElementById('status-latency');
@@ -45,5 +45,24 @@
     }
 
     videoEl.requestVideoFrameCallback(onFrame);
+  }
+
+  //  Global Footer Actions 
+  const startBtn = document.getElementById('btn-start-task');
+  const stopBtn = document.getElementById('btn-emergency-stop');
+
+  if (startBtn) {
+    startBtn.addEventListener('click', () => {
+    });
+  }
+
+  if (stopBtn) {
+    stopBtn.addEventListener('click', async () => {
+      try {
+        await fetch('/api/emergency-stop', { method: 'POST' });
+      } catch (err) {
+        console.error('Failed to send emergency stop:', err);
+      }
+    });
   }
 })();

@@ -1,5 +1,5 @@
 """
-Industry 5.0 — sorting page + API.
+Industry 5.0 - sorting page + API.
 """
 
 from fastapi import APIRouter, Request
@@ -11,14 +11,14 @@ from app.routes.pages._shared import _render
 router = APIRouter()
 
 
-# ── Page ──────────────────────────────────────────────────────────────────
+#  Page 
 
 @router.get("/", response_class=HTMLResponse)
 async def industry_page(request: Request):
     return _render(request, "industry", "pages/industry.html")
 
 
-# ── Models ────────────────────────────────────────────────────────────────
+#  Models 
 
 class MappingEntry(BaseModel):
     part: str
@@ -28,11 +28,11 @@ class MappingPayload(BaseModel):
     mapping: list[MappingEntry]
 
 
-# ── API ───────────────────────────────────────────────────────────────────
+#  API 
 
 @router.post("/api/industry/mapping")
 async def industry_mapping(payload: MappingPayload):
-    """Called whenever the user changes a part→bin row."""
+    """Called whenever the user changes a part->bin row."""
     print("\n[industry] Mapping updated:")
     for e in payload.mapping:
         print(f"  part={e.part!r:20s}  bin={e.bin}")
@@ -42,8 +42,15 @@ async def industry_mapping(payload: MappingPayload):
 @router.post("/api/industry/start")
 async def industry_start(payload: MappingPayload):
     """Called when the user presses Start Task."""
-    print("\n[industry] ▶ START TASK — current mapping:")
-    for e in payload.mapping:
-        print(f"  part={e.part!r:20s}  bin={e.bin}")
+    print("\n" + "="*40)
+    print("[industry] > START TASK TRIGGERED")
+    print("="*40)
+    if not payload.mapping:
+        print("  (Warning: No mappings configured or selected!)")
+    else:
+        print("  Current mapping setup:")
+        for e in payload.mapping:
+            print(f"    - part={e.part!r:20s}  bin={e.bin}")
+    print("="*40 + "\n")
     # TODO: trigger robot sequence here
     return {"status": "started"}

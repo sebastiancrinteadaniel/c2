@@ -22,6 +22,15 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="MyCobot C2", lifespan=lifespan)
 
+@app.post("/api/emergency-stop")
+async def global_emergency_stop():
+    """Trigger a system-wide emergency halt."""
+    print("\n" + "="*50)
+    print("[!] SYSTEM ALERT: GLOBAL EMERGENCY STOP TRIGGERED [!]")
+    print("="*50 + "\n")
+    #  TODO: send immediate halt instruction to robot controller 
+    return {"status": "halted"}
+
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
 for router in page_routers:

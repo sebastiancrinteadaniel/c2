@@ -1,7 +1,3 @@
-"""
-Shared template renderer — imported by every domain route module.
-"""
-
 from fastapi import Request
 from fastapi.templating import Jinja2Templates
 

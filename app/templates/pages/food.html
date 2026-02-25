@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 
-{% block page_styles %}<link rel="stylesheet" href="/static/css/pages/food.css" />{% endblock %}
+{% block page_styles %}
+<link rel="stylesheet" href="/static/css/pages/food.css" />{% endblock %}
 
 {% block page_title %}Food — Candy{% endblock %}
 
@@ -14,7 +15,7 @@
 
 {% block right_panel %}
 
-{# ── PRODUCT CLASSIFICATION ────────────────────────────────────────────── #}
+{# PRODUCT CLASSIFICATION #}
 <div class="rp-section">
   <div class="fd-section-title-row">
     <div class="rp-section-header">Product Classification</div>
@@ -24,35 +25,89 @@
     <span>Bin</span>
   </div>
   <div class="fd-class-row">
-    <input class="fd-input" type="text" placeholder="" />
-    <input class="fd-input" type="text" placeholder="" />
+    <select class="rp-select">
+      <option value="">Select product...</option>
+      <option>Fruit Chews</option>
+      <option>Chocolate Bar</option>
+      <option>Assorted Mints</option>
+    </select>
+    <select class="rp-select">
+      <option value="">Select bin...</option>
+      <option>0</option>
+      <option>1</option>
+      <option>2</option>
+      <option>3</option>
+    </select>
   </div>
   <div class="fd-class-row">
-    <input class="fd-input" type="text" placeholder="" />
-    <input class="fd-input" type="text" placeholder="" />
+    <select class="rp-select">
+      <option value="">Select product...</option>
+      <option>Fruit Chews</option>
+      <option>Chocolate Bar</option>
+      <option>Assorted Mints</option>
+    </select>
+    <select class="rp-select">
+      <option value="">Select bin...</option>
+      <option>0</option>
+      <option>1</option>
+      <option>2</option>
+      <option>3</option>
+    </select>
   </div>
   <div class="fd-class-row">
-    <input class="fd-input" type="text" placeholder="" />
-    <input class="fd-input" type="text" placeholder="" />
+    <select class="rp-select">
+      <option value="">Select product...</option>
+      <option>Fruit Chews</option>
+      <option>Chocolate Bar</option>
+      <option>Assorted Mints</option>
+    </select>
+    <select class="rp-select">
+      <option value="">Select bin...</option>
+      <option>0</option>
+      <option>1</option>
+      <option>2</option>
+      <option>3</option>
+    </select>
   </div>
   <div class="fd-class-row">
-    <input class="fd-input" type="text" placeholder="" />
-    <input class="fd-input" type="text" placeholder="" />
+    <select class="rp-select">
+      <option value="">Select product...</option>
+      <option>Fruit Chews</option>
+      <option>Chocolate Bar</option>
+      <option>Assorted Mints</option>
+    </select>
+    <select class="rp-select">
+      <option value="">Select bin...</option>
+      <option>0</option>
+      <option>1</option>
+      <option>2</option>
+      <option>3</option>
+    </select>
   </div>
   <div class="fd-class-row">
-    <input class="fd-input" type="text" placeholder="" />
-    <input class="fd-input" type="text" placeholder="" />
+    <select class="rp-select">
+      <option value="">Select product...</option>
+      <option>Fruit Chews</option>
+      <option>Chocolate Bar</option>
+      <option>Assorted Mints</option>
+    </select>
+    <select class="rp-select">
+      <option value="">Select bin...</option>
+      <option>0</option>
+      <option>1</option>
+      <option>2</option>
+      <option>3</option>
+    </select>
   </div>
 </div>
 
-{# ── QUALITY ASSURANCE ────────────────────────────────────────────────── #}
+{# QUALITY ASSURANCE #}
 <div class="rp-section">
   <div class="rp-section-header">Quality Assurance</div>
 
   <div class="fd-qa-alert">
     <span class="fd-qa-alert-icon">
-      <img src="/static/svg/icon-warning.svg" alt=""
-           onerror="this.outerHTML='&#9888;'" />
+      <img src="/static/svg/icon-warning.svg" alt="" onerror="this.outerHTML='&#9888;'" />
     </span>
     <span class="fd-qa-alert-text">System Alert: Quality Threshold Breached</span>
   </div>
@@ -76,25 +131,52 @@
   <button class="fd-halt-btn" onclick="haltProduction()">Halt Production Cycle</button>
 </div>
 
-{# ── CONVEYOR DIAGRAM ─────────────────────────────────────────────────── #}
+{# CONVEYOR DIAGRAM #}
 <div class="rp-diagram">
   <img src="/static/svg/food-conveyor.svg" alt="Conveyor diagram"
-       onerror="this.outerHTML='<span class=rp-diagram-placeholder>conveyor diagram</span>'" />
+    onerror="this.outerHTML='<span class=rp-diagram-placeholder>conveyor diagram</span>'" />
 </div>
 
 {% endblock %}
 
 {% block page_scripts %}
 <script>
-async function haltProduction() {
-  if (!confirm('Halt the production cycle?')) return;
-  try {
-    const res = await fetch('/api/food/halt', { method: 'POST' });
-    const data = await res.json();
-    console.log('[food] halt:', data);
-  } catch (err) {
-    console.error('[food] halt error:', err);
+  async function haltProduction() {
+    if (!confirm('Halt the production cycle?')) return;
+    try {
+      const res = await fetch('/api/food/halt', { method: 'POST' });
+      const data = await res.json();
+    } catch (err) {
+      console.error('[food] halt error:', err);
+    }
   }
-}
+
+  //  Footer Start Task binding 
+  const startBtn = document.getElementById('btn-start-task');
+  if (startBtn) {
+    startBtn.addEventListener('click', async () => {
+      const mapping = [];
+      const rows = document.querySelectorAll('.fd-class-row');
+      rows.forEach(row => {
+        const selects = row.querySelectorAll('select');
+        if (selects.length === 2) {
+          const product = selects[0].value;
+          const bin = selects[1].value;
+          if (product && bin) {
+            mapping.push({ product, bin });
+          }
+        }
+      });
+      try {
+        await fetch('/api/food/start', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ mapping })
+        });
+      } catch (err) {
+        console.error('Failed to start food task:', err);
+      }
+    });
+  }
 </script>
 {% endblock %}
