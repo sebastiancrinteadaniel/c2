@@ -1,10 +1,10 @@
 from contextlib import asynccontextmanager
 
-import uvicorn
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 
-from app.routes import pages, webrtc
+from app.routes import webrtc
+from app.routes.pages import all_routers as page_routers
 from app.routes.webrtc import close_all_connections
 from app.services.camera import start_camera, stop_camera
 from app.services.detector import start_detector, stop_detector
@@ -24,5 +24,6 @@ app = FastAPI(title="MyCobot C2", lifespan=lifespan)
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
-app.include_router(pages.router)
+for router in page_routers:
+    app.include_router(router)
 app.include_router(webrtc.router)

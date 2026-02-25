@@ -1,5 +1,7 @@
 {% extends "base.html" %}
 
+{% block page_styles %}<link rel="stylesheet" href="/static/css/pages/industry.css" />{% endblock %}
+
 {% block page_title %}Industry 5.0 — Sorting{% endblock %}
 
 {% block right_panel_title %}Industry 5.0 Sorting{% endblock %}
@@ -56,7 +58,7 @@
 </div>
 
 {# ── APPLY BUTTON ───────────────────────────────────────────────── #}
-<button class="rp-apply-btn" onclick="applyMapping()">Apply Global Mapping</button>
+<button class="rp-action-btn" onclick="applyMapping()">Apply Global Mapping</button>
 
 {# ── DIAGRAM SVG ──────────────────────────────────────────────── #}
 <div class="rp-diagram">

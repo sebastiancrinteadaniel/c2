@@ -1,0 +1,58 @@
+/* ─── Industry 5.0 — right-panel form controls ──────────────────────────── */
+/* .rp-select is defined in global.css — shared across all pages */
+
+.rp-profile-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 6px;
+}
+
+.rp-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 11px 6px;
+  border-radius: 8px;
+  font-family: var(--font);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background 0.15s, filter 0.15s, transform 0.1s;
+  border: 1px solid transparent;
+  background: var(--bg-card);
+  color: var(--text-primary);
+}
+.rp-btn img { width: 14px; height: 14px; opacity: 0.75; }
+.rp-btn:active { transform: scale(0.96); }
+.rp-btn--new    { border-color: var(--border-light); color: var(--text-primary); }
+.rp-btn--save   { border-color: var(--border-light); color: var(--text-primary); }
+.rp-btn--delete { background: rgba(185,28,28,0.18); border-color: var(--red); color: var(--red); }
+.rp-btn--delete img { opacity: 1; filter: invert(35%) sepia(80%) saturate(600%) hue-rotate(330deg); }
+.rp-btn--new:hover    { background: var(--bg-input); }
+.rp-btn--save:hover   { background: var(--bg-input); }
+.rp-btn--delete:hover { background: rgba(185,28,28,0.30); }
+
+.rp-mapping-row {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr;
+  gap: 6px;
+  align-items: center;
+}
+
+.rp-number {
+  background: var(--bg-input);
+  border: 1px solid var(--border-light);
+  border-radius: 4px;
+  color: var(--text-primary);
+  font-family: var(--font);
+  font-size: 12px;
+  text-align: center;
+  padding: 9px 2px;
+  width: 100%;
+}
+.rp-number:focus { outline: none; border-color: var(--cyan-dim); }
+
+/* .rp-apply-btn consolidated into .rp-action-btn in global.css */

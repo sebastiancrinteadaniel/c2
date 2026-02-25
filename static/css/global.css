@@ -212,18 +212,15 @@ html, body {
   width: 26px;
   height: 26px;
   object-fit: contain;
-  /* tint inactive icons */
   filter: brightness(0) saturate(100%) invert(60%) sepia(10%) saturate(400%) hue-rotate(190deg);
   transition: filter 0.15s;
 }
 
 .nav-item:hover .nav-icon,
 .nav-item.active .nav-icon {
-  /* tint active/hover icons cyan */
   filter: brightness(0) saturate(100%) invert(74%) sepia(80%) saturate(400%) hue-rotate(160deg) brightness(1.1);
 }
 
-/* fallback when SVG is missing — show a small square placeholder */
 .nav-icon-fallback {
   width: 26px;
   height: 26px;
@@ -483,6 +480,50 @@ html, body {
   padding-left: 8px;
 }
 
+/* Shared dropdown — used by industry, settings, etc. */
+.rp-select {
+  width: 100%;
+  background: var(--bg-input);
+  border: 1px solid var(--border-light);
+  border-radius: 4px;
+  color: var(--text-primary);
+  font-family: var(--font);
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  padding: 9px 28px 9px 10px;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%238b98b4'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  cursor: pointer;
+}
+.rp-select:focus { outline: none; border-color: var(--cyan-dim); }
+
+/* Shared dark-blue action button — industry (Apply), settings (Deploy / Init) */
+.rp-action-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 13px 10px;
+  background: #1a2a4a;
+  border: 1px solid #2a4a8a;
+  border-radius: 4px;
+  color: #6ea8fe;
+  font-family: var(--font);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: filter 0.15s, transform 0.1s;
+}
+.rp-action-btn img { width: 15px; height: 15px; opacity: 0.8; flex-shrink: 0; }
+.rp-action-btn .rp-action-btn-icon { font-size: 15px; line-height: 1; flex-shrink: 0; }
+.rp-action-btn:hover  { filter: brightness(1.2); }
+.rp-action-btn:active { transform: scale(0.98); }
+
 /* Placeholder fill */
 .rp-placeholder {
   flex: 1;
@@ -541,98 +582,7 @@ html, body {
 }
 .btn--stop:hover { background: rgba(185, 28, 28, 0.38); }
 
-/* ─── Right-panel form controls ─────────────────────────────────────────── */
-
-.rp-select {
-  width: 100%;
-  background: var(--bg-input);
-  border: 1px solid var(--border-light);
-  border-radius: 4px;
-  color: var(--text-primary);
-  font-family: var(--font);
-  font-size: 12px;
-  letter-spacing: 0.04em;
-  padding: 9px 28px 9px 10px;
-  appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%238b98b4'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right 10px center;
-  cursor: pointer;
-}
-.rp-select:focus { outline: none; border-color: var(--cyan-dim); }
-
-.rp-profile-actions {
-  display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
-  gap: 6px;
-}
-
-.rp-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  padding: 11px 6px;
-  border-radius: 8px;
-  font-family: var(--font);
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  cursor: pointer;
-  transition: background 0.15s, filter 0.15s, transform 0.1s;
-  border: 1px solid transparent;
-  background: var(--bg-card);
-  color: var(--text-primary);
-}
-.rp-btn img { width: 14px; height: 14px; opacity: 0.75; }
-.rp-btn:active { transform: scale(0.96); }
-.rp-btn--new    { border-color: var(--border-light); color: var(--text-primary); }
-.rp-btn--save   { border-color: var(--border-light); color: var(--text-primary); }
-.rp-btn--delete { background: rgba(185,28,28,0.18); border-color: var(--red); color: var(--red); }
-.rp-btn--delete img { opacity: 1; filter: invert(35%) sepia(80%) saturate(600%) hue-rotate(330deg); }
-.rp-btn--new:hover    { background: var(--bg-input); }
-.rp-btn--save:hover   { background: var(--bg-input); }
-.rp-btn--delete:hover { background: rgba(185,28,28,0.30); }
-
-.rp-mapping-row {
-  display: grid;
-  grid-template-columns: 1.4fr 1fr;
-  gap: 6px;
-  align-items: center;
-}
-
-.rp-number {
-  background: var(--bg-input);
-  border: 1px solid var(--border-light);
-  border-radius: 4px;
-  color: var(--text-primary);
-  font-family: var(--font);
-  font-size: 12px;
-  text-align: center;
-  padding: 9px 2px;
-  width: 100%;
-}
-.rp-number:focus { outline: none; border-color: var(--cyan-dim); }
-
-.rp-apply-btn {
-  width: 100%;
-  padding: 13px 10px;
-  background: #1a2a4a;
-  border: 1px solid #2a4a8a;
-  border-radius: 4px;
-  color: #6ea8fe;
-  font-family: var(--font);
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  cursor: pointer;
-  transition: filter 0.15s, transform 0.1s;
-}
-.rp-apply-btn:hover  { filter: brightness(1.2); }
-.rp-apply-btn:active { transform: scale(0.98); }
-
+/* ─── Shared diagram widget (industry + food) ───────────────────────────── */
 .rp-diagram {
   width: 100%;
   border-radius: 4px;

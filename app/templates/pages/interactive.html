@@ -1,17 +1,191 @@
 {% extends "base.html" %}
 
+{% block page_styles %}<link rel="stylesheet" href="/static/css/pages/interactive.css" />{% endblock %}
+
 {% block page_title %}Interactive — Mode{% endblock %}
 
 {% block right_panel_title %}Interactive Mode{% endblock %}
 
-{% block log_label %}OCB Detected:{% endblock %}
+{% block log_label %}OCR Detected:{% endblock %}
 
 {% block detection_entries %}
-<span class="entry" style="color:var(--text-muted);font-style:italic;">Searching for hand gesture…</span>
+<span class="entry" style="color:var(--text-muted);font-style:italic;" id="ia-gesture-status">Searching for hand gesture…</span>
 {% endblock %}
 
 {% block right_panel %}
-<div class="rp-placeholder">
-  Interaction controls coming soon
+
+{# ── INTERACTION PROTOCOL ─────────────────────────────────────────────── #}
+<div class="rp-section">
+  <div class="rp-section-header">Interaction Protocol</div>
+  <div class="ia-detection-row">
+    <img class="ia-detection-icon"
+         src="/static/svg/ia-hand.svg"
+         alt="hand"
+         onerror="this.outerHTML='<span class=ia-detection-icon-fallback>✋</span>'" />
+    <span class="ia-detection-label">Detection:</span>
+    <button class="ia-badge ia-badge--on"
+            id="ia-detection-toggle"
+            onclick="toggleDetection()">ACTIVE</button>
+  </div>
 </div>
+
+{# ── TARGET PRIORITIES ────────────────────────────────────────────────── #}
+<div class="rp-section">
+  <div class="rp-section-header">Target Priorities</div>
+  <div class="ia-priorities-card" id="ia-priorities-card">
+    <div class="ia-priority-row" data-index="0">
+      <span class="ia-priority-index">PRIORITY 1:</span>
+      <span class="ia-priority-name">Food Items</span>
+      <button class="ia-icon-btn" title="Edit" onclick="editTarget(0)">
+        <img src="/static/svg/icon-edit.svg" alt="edit"
+             onerror="this.outerHTML='<span>✎</span>'" />
+      </button>
+      <button class="ia-icon-btn ia-icon-btn--delete" title="Delete" onclick="deleteTarget(0)">
+        <img src="/static/svg/icon-delete.svg" alt="delete"
+             onerror="this.outerHTML='<span>✕</span>'" />
+      </button>
+    </div>
+    <div class="ia-priority-row" data-index="1">
+      <span class="ia-priority-index">PRIORITY 2:</span>
+      <span class="ia-priority-name">Industrial Parts</span>
+      <button class="ia-icon-btn" title="Edit" onclick="editTarget(1)">
+        <img src="/static/svg/icon-edit.svg" alt="edit"
+             onerror="this.outerHTML='<span>✎</span>'" />
+      </button>
+      <button class="ia-icon-btn ia-icon-btn--delete" title="Delete" onclick="deleteTarget(1)">
+        <img src="/static/svg/icon-delete.svg" alt="delete"
+             onerror="this.outerHTML='<span>✕</span>'" />
+      </button>
+    </div>
+  </div>
+  <button class="ia-add-target-btn" onclick="addTarget()">Add Target</button>
+</div>
+
+{# ── SAFETY PROXIMITY MONITOR ─────────────────────────────────────────── #}
+<div class="rp-section">
+  <div class="rp-section-header">Safety Proximity Monitor</div>
+
+  <div class="ia-spm-header">
+    <span class="ia-spm-label">Distance to Target</span>
+    <span class="ia-spm-value" id="ia-dist-val">150 MM</span>
+  </div>
+
+  <div class="ia-prox-bar-wrap">
+    <div class="ia-prox-bar" id="ia-prox-bar">
+      <div class="ia-prox-indicator" id="ia-prox-indicator" style="--pos: 50%;"></div>
+    </div>
+  </div>
+  <div class="ia-prox-ticks">
+    <span>0</span>
+    <span>50</span>
+    <span>100</span>
+    <span>150</span>
+    <span>200</span>
+    <span>250</span>
+    <span>300</span>
+  </div>
+
+  <div class="ia-diagram-box">
+    <img src="/static/svg/ia-robot-hand.svg"
+         alt="Robot-hand interaction diagram"
+         onerror="this.outerHTML='<span class=ia-diagram-placeholder>robot-hand diagram</span>'" />
+  </div>
+</div>
+
+{% endblock %}
+
+{% block page_scripts %}
+<script>
+// ── State ─────────────────────────────────────────────────────────────────
+let _detectionActive = true;
+let _targets = ['Food Items', 'Industrial Parts'];
+
+// ── Helpers ───────────────────────────────────────────────────────────────
+async function _post(url, body) {
+  try {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    return await res.json();
+  } catch (err) {
+    console.error('[interactive] fetch error:', err);
+  }
+}
+
+// ── Render priorities list ────────────────────────────────────────────────
+function _renderTargets() {
+  const card = document.getElementById('ia-priorities-card');
+  card.innerHTML = _targets.map((name, i) => `
+    <div class="ia-priority-row" data-index="${i}">
+      <span class="ia-priority-index">PRIORITY ${i + 1}:</span>
+      <span class="ia-priority-name">${name}</span>
+      <button class="ia-icon-btn" title="Edit" onclick="editTarget(${i})">
+        <img src="/static/svg/icon-edit.svg" alt="edit"
+             onerror="this.outerHTML='<span>✎</span>'" />
+      </button>
+      <button class="ia-icon-btn ia-icon-btn--delete" title="Delete" onclick="deleteTarget(${i})">
+        <img src="/static/svg/icon-delete.svg" alt="delete"
+             onerror="this.outerHTML='<span>✕</span>'" />
+      </button>
+    </div>
+  `).join('');
+}
+
+// ── Detection toggle ──────────────────────────────────────────────────────
+async function toggleDetection() {
+  _detectionActive = !_detectionActive;
+  const btn = document.getElementById('ia-detection-toggle');
+  if (_detectionActive) {
+    btn.textContent = 'ACTIVE';
+    btn.className = 'ia-badge ia-badge--on';
+  } else {
+    btn.textContent = 'OFF';
+    btn.className = 'ia-badge ia-badge--off';
+  }
+  await _post('/api/interactive/detection', { enabled: _detectionActive });
+}
+
+// ── Target CRUD ───────────────────────────────────────────────────────────
+async function addTarget() {
+  const name = prompt('New target name:');
+  if (!name || !name.trim()) return;
+  _targets.push(name.trim().toUpperCase());
+  _renderTargets();
+  await _post('/api/interactive/targets', { targets: _targets });
+}
+
+async function editTarget(i) {
+  const name = prompt('Rename target:', _targets[i]);
+  if (!name || !name.trim()) return;
+  _targets[i] = name.trim().toUpperCase();
+  _renderTargets();
+  await _post('/api/interactive/targets', { targets: _targets });
+}
+
+async function deleteTarget(i) {
+  if (!confirm(`Delete "${_targets[i]}"?`)) return;
+  _targets.splice(i, 1);
+  _renderTargets();
+  await _post('/api/interactive/targets', { targets: _targets });
+}
+
+// ── Proximity bar ─────────────────────────────────────────────────────────
+function updateProximity(mm) {
+  const MIN = 0, MAX = 300;
+  const pct = Math.min(100, Math.max(0, ((mm - MIN) / (MAX - MIN)) * 100));
+  document.getElementById('ia-prox-indicator').style.setProperty('--pos', pct + '%');
+  document.getElementById('ia-dist-val').textContent = Math.round(mm) + ' MM';
+}
+
+// Initialise indicator at 150 mm
+updateProximity(150);
+
+// ── Start task (footer button wired via base.html) ────────────────────────
+document.getElementById('btn-start-task').addEventListener('click', async () => {
+  await _post('/api/interactive/start', { targets: _targets, detection: _detectionActive });
+  console.log('[interactive] start task fired');
+});
+</script>
 {% endblock %}

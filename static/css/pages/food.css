@@ -1,0 +1,118 @@
+/* ─── Food right-panel components ──────────────────────────────────────── */
+
+.fd-section-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+/* Product Classification table */
+.fd-class-header {
+  display: grid;
+  grid-template-columns: 1fr 0.55fr;
+  gap: 6px;
+  padding: 0 2px;
+}
+.fd-class-header span {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.fd-class-row {
+  display: grid;
+  grid-template-columns: 1fr 0.55fr;
+  gap: 6px;
+}
+
+.fd-input {
+  width: 100%;
+  background: var(--bg-input);
+  border: 1px solid var(--border-light);
+  border-radius: 4px;
+  color: var(--text-primary);
+  font-family: var(--font);
+  font-size: 11px;
+  padding: 7px 8px;
+  box-sizing: border-box;
+  -webkit-appearance: none;
+  appearance: none;
+  color-scheme: dark;
+}
+.fd-input:focus { outline: none; border-color: var(--cyan-dim); }
+.fd-input::placeholder { color: var(--text-muted); opacity: 0.5; }
+
+/* Quality Assurance */
+.fd-qa-alert {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  background: rgba(153,27,27,0.28);
+  border: 1px solid rgba(185,28,28,0.55);
+  border-radius: 4px;
+}
+.fd-qa-alert img { width: 16px; height: 16px; flex-shrink: 0; }
+.fd-qa-alert-icon {
+  font-size: 14px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+.fd-qa-alert-text {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: #f87171;
+}
+
+.fd-qa-stat {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+.fd-qa-stat-val {
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  letter-spacing: 0;
+}
+
+.fd-qa-triangles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px 4px;
+}
+.fd-qa-triangles span {
+  font-size: 11px;
+  line-height: 1;
+  color: var(--red);
+}
+
+.fd-halt-btn {
+  width: 100%;
+  padding: 11px 10px;
+  background: rgba(185,28,28,0.18);
+  border: 1px solid var(--red);
+  border-radius: 4px;
+  color: var(--red);
+  font-family: var(--font);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background 0.15s, transform 0.1s;
+  -webkit-appearance: none;
+  appearance: none;
+}
+.fd-halt-btn:hover  { background: rgba(185,28,28,0.30); }
+.fd-halt-btn:active { transform: scale(0.98); }

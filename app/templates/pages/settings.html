@@ -1,17 +1,146 @@
 {% extends "base.html" %}
 
+{% block page_styles %}<link rel="stylesheet" href="/static/css/pages/settings.css" />{% endblock %}
+
 {% block page_title %}Settings — Control{% endblock %}
 
-{% block right_panel_title %}Settings (Control){% endblock %}
+{% block right_panel_title %}System Settings{% endblock %}
 
-{% block log_label %}System:{% endblock %}
+{% block log_label %}OCR Detected:{% endblock %}
 
 {% block detection_entries %}
-<span class="entry" style="color:var(--text-muted);font-style:italic;">Ready</span>
+<span class="entry" style="color:var(--cyan);font-style:italic;" id="st-status">System diagnostic mode active…</span>
 {% endblock %}
 
 {% block right_panel %}
-<div class="rp-placeholder">
-  Settings controls coming soon
+
+{# ── PHYSICAL AI MODEL ────────────────────────────────────────────────── #}
+<div class="rp-section">
+  <div class="rp-section-header">Physical AI Model</div>
+  <select class="rp-select" id="st-physical-model">
+    <option value="">Select a model…</option>
+    <option value="yolov8n">YOLOv8n (nano)</option>
+    <option value="yolov8s">YOLOv8s (small)</option>
+    <option value="yolov8m">YOLOv8m (medium)</option>
+  </select>
+  <button class="rp-action-btn" onclick="deployPhysical()">
+    <img src="/static/svg/icon-deploy.svg" alt=""
+         onerror="this.outerHTML='<span class=rp-action-btn-icon>&#9881;</span>'" />
+    Deploy Physical Model
+  </button>
 </div>
+
+{# ── COMPUTER VISION MODEL ────────────────────────────────────────────── #}
+<div class="rp-section">
+  <div class="rp-section-header">Computer Vision Model</div>
+  <select class="rp-select" id="st-cv-model">
+    <option value="">Select a model…</option>
+    <option value="yolov8n">YOLOv8n (nano)</option>
+    <option value="yolov8s">YOLOv8s (small)</option>
+    <option value="yolov8m">YOLOv8m (medium)</option>
+  </select>
+  <button class="rp-action-btn" onclick="deployCv()">
+    <img src="/static/svg/icon-eye.svg" alt=""
+         onerror="this.outerHTML='<span class=rp-action-btn-icon>&#128065;</span>'" />
+    Deploy CV Model
+  </button>
+</div>
+
+{# ── ROBOTIC ARM ──────────────────────────────────────────────────────── #}
+<div class="rp-section">
+  <div class="rp-section-header">Robotic Arm</div>
+  <select class="rp-select" id="st-arm-port">
+    <option value="">Select port / device…</option>
+    <option value="com3">COM3</option>
+    <option value="com4">COM4</option>
+    <option value="ttyusb0">/dev/ttyUSB0</option>
+    <option value="ttyusb1">/dev/ttyUSB1</option>
+  </select>
+
+  <div class="st-joint-header">
+    <span class="st-joint-title">Real-Time Joint States</span>
+    <button class="st-joint-unit-toggle" id="st-unit-toggle" onclick="toggleUnits()">Radiant Values</button>
+  </div>
+
+  <div class="st-joint-grid">
+    <div class="st-joint-cell"><span class="st-joint-label">J1</span><div class="st-joint-val" id="st-j1">30°</div></div>
+    <div class="st-joint-cell"><span class="st-joint-label">J2</span><div class="st-joint-val" id="st-j2">45°</div></div>
+    <div class="st-joint-cell"><span class="st-joint-label">J3</span><div class="st-joint-val" id="st-j3">-12°</div></div>
+    <div class="st-joint-cell"><span class="st-joint-label">J4</span><div class="st-joint-val" id="st-j4">90°</div></div>
+    <div class="st-joint-cell"><span class="st-joint-label">J5</span><div class="st-joint-val" id="st-j5">0°</div></div>
+    <div class="st-joint-cell"><span class="st-joint-label">J6</span><div class="st-joint-val" id="st-j6">180°</div></div>
+  </div>
+
+  <button class="rp-action-btn" onclick="initializeArm()">
+    <img src="/static/svg/icon-power.svg" alt=""
+         onerror="this.outerHTML='<span class=rp-action-btn-icon>&#9889;</span>'" />
+    Initialize Arm
+  </button>
+</div>
+
+{% endblock %}
+
+{% block page_scripts %}
+<script>
+// ── Joint values (degrees) ────────────────────────────────────────────────
+const _joints = { j1: 30, j2: 45, j3: -12, j4: 90, j5: 0, j6: 180 };
+let _showRadians = false;
+
+function _toRad(deg) { return deg * Math.PI / 180; }
+
+function _renderJoints() {
+  ['j1','j2','j3','j4','j5','j6'].forEach(k => {
+    const el = document.getElementById('st-' + k);
+    if (!el) return;
+    el.textContent = _showRadians
+      ? _toRad(_joints[k]).toFixed(3) + ' rad'
+      : _joints[k] + '°';
+  });
+}
+
+function toggleUnits() {
+  _showRadians = !_showRadians;
+  document.getElementById('st-unit-toggle').textContent =
+    _showRadians ? 'Degree Values' : 'Radiant Values';
+  _renderJoints();
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────
+async function _post(url, body) {
+  try {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    return await res.json();
+  } catch (err) {
+    console.error('[settings] fetch error:', err);
+  }
+}
+
+// ── Deploy handlers ───────────────────────────────────────────────────────
+async function deployPhysical() {
+  const model = document.getElementById('st-physical-model').value;
+  if (!model) { alert('Select a Physical AI model first.'); return; }
+  await _post('/api/settings/deploy-physical', { model });
+  console.log('[settings] deploy physical:', model);
+}
+
+async function deployCv() {
+  const model = document.getElementById('st-cv-model').value;
+  if (!model) { alert('Select a CV model first.'); return; }
+  await _post('/api/settings/deploy-cv', { model });
+  console.log('[settings] deploy cv:', model);
+}
+
+async function initializeArm() {
+  const port = document.getElementById('st-arm-port').value;
+  await _post('/api/settings/initialize-arm', { port });
+  console.log('[settings] initialize arm:', port || 'auto');
+}
+
+// ── Start task ────────────────────────────────────────────────────────────
+document.getElementById('btn-start-task').addEventListener('click', () => initializeArm());
+</script>
 {% endblock %}
