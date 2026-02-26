@@ -6,7 +6,9 @@ from pydantic import BaseModel
 
 from app.services.camera import get_camera_track
 from app.config.camera import get_camera_settings
+from app.services.detector import get_detector
 
+import json
 
 router = APIRouter()
 
@@ -33,6 +35,19 @@ async def handle_offer(body: OfferBody):
         if state in ("failed", "closed", "disconnected"):
             await pc.close()
             _peer_connections.discard(pc)
+
+    @pc.on("datachannel")
+    def on_datachannel(channel):
+        if channel.label == "detections":
+            print("[webrtc] Detection DataChannel opened")
+
+            # Spawn a task to poll and send detections
+            task = asyncio.create_task(_send_detections(channel))
+
+            @channel.on("close")
+            def on_close():
+                print("[webrtc] Detection DataChannel closed")
+                task.cancel()
 
     # Add the singleton camera track
     camera = get_camera_track()
@@ -108,6 +123,18 @@ async def _wait_for_ice(pc: RTCPeerConnection, timeout: float = 5.0) -> None:
         await asyncio.wait_for(done, timeout=timeout)
     except asyncio.TimeoutError:
         print("[webrtc] ICE gathering timed out - sending partial candidates")
+
+
+async def _send_detections(channel) -> None:
+    """Polls the detector and sends results over the DataChannel."""
+    while channel.readyState == "open":
+        dets = get_detector().latest_detections
+        if dets:
+            try:
+                channel.send(json.dumps({"detections": dets}))
+            except Exception as e:
+                print(f"[webrtc] DataChannel send error: {e}")
+        await asyncio.sleep(0.1)  # 10Hz updates
 
 
 async def close_all_connections() -> None:
