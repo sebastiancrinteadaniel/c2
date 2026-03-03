@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import asyncio
 import fractions
+import queue
+import sys
 import threading
 import time
 from typing import Optional
@@ -64,8 +66,7 @@ class CameraStreamTrack(MediaStreamTrack):
     def __init__(self) -> None:
         super().__init__()
         self._cap: Optional[cv2.VideoCapture] = None
-        self._queue: asyncio.Queue[av.VideoFrame] = asyncio.Queue(maxsize=2)
-        self._loop: Optional[asyncio.AbstractEventLoop] = None
+        self._queue: queue.SimpleQueue = queue.SimpleQueue()
         self._thread: Optional[threading.Thread] = None
         self._running = False
         self._pts = 0
@@ -84,16 +85,33 @@ class CameraStreamTrack(MediaStreamTrack):
         cfg = get_camera_settings()
         self._cfg = cfg
 
-        self._cap = cv2.VideoCapture(cfg.camera_index)
+        backend = cv2.CAP_V4L2 if sys.platform.startswith("linux") else cv2.CAP_ANY
+        self._cap = cv2.VideoCapture(cfg.camera_index, backend)
         if not self._cap.isOpened():
             raise RuntimeError(f"Could not open camera at index {cfg.camera_index}")
+
+        #  Force compressed pixel format BEFORE setting resolution/fps.
+        #  On Linux/V4L2 the default (YUYV) cannot sustain 1080p over USB 2.0.
+        fourcc = cv2.VideoWriter_fourcc(*cfg.camera_fourcc)
+        self._cap.set(cv2.CAP_PROP_FOURCC, fourcc)
+
+        #  Reduce internal V4L2 buffer from 4 frames → 1 to cut latency.
+        self._cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
 
         self._cap.set(cv2.CAP_PROP_FRAME_WIDTH,  cfg.capture_width)
         self._cap.set(cv2.CAP_PROP_FRAME_HEIGHT, cfg.capture_height)
         self._cap.set(cv2.CAP_PROP_FPS, cfg.camera_fps)
 
+        actual_w   = int(self._cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+        actual_h   = int(self._cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+        actual_fps = self._cap.get(cv2.CAP_PROP_FPS)
+        if actual_fps != cfg.camera_fps or actual_w != cfg.capture_width or actual_h != cfg.capture_height:
+            print(
+                f"[camera] ⚠ Negotiated {actual_w}×{actual_h} @ {actual_fps:.1f}fps "
+                f"(requested {cfg.capture_width}×{cfg.capture_height} @ {cfg.camera_fps}fps)"
+            )
+
         self._running = True
-        self._loop = asyncio.get_event_loop()
         self._thread = threading.Thread(target=self._reader, daemon=True)
         self._thread.start()
 
@@ -157,27 +175,24 @@ class CameraStreamTrack(MediaStreamTrack):
             frame.pts = self._pts
             frame.time_base = VIDEO_TIME_BASE
 
-            if self._loop and self._loop.is_running():
-                asyncio.run_coroutine_threadsafe(
-                    self._put_frame(frame), self._loop
-                )
+            #  Push directly into the thread-safe queue - no asyncio syscall.
+            #  Drop the oldest frame when the consumer (recv) falls behind.
+            if self._queue.qsize() >= 2:
+                try:
+                    self._queue.get_nowait()
+                except queue.Empty:
+                    pass
+            self._queue.put(frame)
 
             elapsed = time.monotonic() - t0
             sleep_for = interval - elapsed
             if sleep_for > 0:
                 time.sleep(sleep_for)
 
-    async def _put_frame(self, frame: av.VideoFrame) -> None:
-        if self._queue.full():
-            try:
-                self._queue.get_nowait()
-            except asyncio.QueueEmpty:
-                pass
-        await self._queue.put(frame)
-
     async def recv(self) -> av.VideoFrame:
         """Called by aiortc to get the next frame for a peer connection."""
-        return await self._queue.get()
+        loop = asyncio.get_event_loop()
+        return await loop.run_in_executor(None, self._queue.get)
 
 
 #  Singleton 

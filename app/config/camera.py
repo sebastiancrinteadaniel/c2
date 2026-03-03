@@ -53,11 +53,15 @@ class CameraSettings(BaseSettings):
     display_height: int = -1
 
     #  Misc 
-    camera_fps:   int = 60
+    camera_fps:   int = 30
     camera_index: int = 0
 
     #  WebRTC encoder bandwidth hint 
     webrtc_video_kbps: int = 4000
+
+    #  V4L2 pixel format (Linux). "MJPG" avoids raw YUYV bandwidth ceiling
+    #  that limits 1080p to ~5 fps on USB 2.0. Safe to set on Windows too.
+    camera_fourcc: str = "MJPG"
 
     @model_validator(mode="after")
     def _resolve_display_defaults(self) -> "CameraSettings":
@@ -95,6 +99,7 @@ class CameraSettings(BaseSettings):
             f"infer:{self.infer_width}×{self.infer_height}  "
             f"display:{self.display_width}×{self.display_height}  "
             f"fps:{self.camera_fps}  "
+            f"fourcc:{self.camera_fourcc}  "
             f"bitrate:{self.webrtc_video_kbps}kbps"
             f"{upscale_warn}"
         )

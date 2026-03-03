@@ -4,6 +4,8 @@ import threading
 import time
 from typing import Optional
 
+import torch
+
 from app.config.detector import DetectorSettings, get_detector_settings
 from ultralytics import YOLO
 from app.services.camera import set_detection_provider
@@ -23,6 +25,7 @@ class DetectorService:
         self.latest_detections: list[Detection] = []
         self._model = None
         self._cfg: Optional[DetectorSettings] = None
+        self._device: Optional[str] = None
 
     def start(self) -> None:
         cfg = get_detector_settings()
@@ -46,11 +49,36 @@ class DetectorService:
 
     def _load_and_run(self) -> None:
         cfg = self._cfg
+
+        # Resolve inference device explicitly — never rely on Ultralytics auto-select
+        # which can silently fall back to CPU even when CUDA is available.
+        if cfg.device:
+            self._device = cfg.device
+        elif torch.cuda.is_available():
+            self._device = "cuda:0"
+        else:
+            self._device = "cpu"
+
+        # RTX 5000 series (Blackwell) and some other new GPUs hit
+        # CUBLAS_STATUS_INVALID_VALUE with FP32 sgemm in torch 2.x.
+        # TF32 routes those ops through tensor cores and avoids the bug.
+        if self._device.startswith("cuda"):
+            torch.backends.cuda.matmul.allow_tf32 = True
+            torch.backends.cudnn.allow_tf32 = True
+            torch.set_float32_matmul_precision("high")
+
         try:
             self._model = YOLO(cfg.model_path)
+            self._model.to(self._device)
+            # Ultralytics converts weights to FP16 lazily on the first inference
+            # call, meaning the very first cublasSgemm (FP32) still fires and
+            # crashes on Blackwell. Force the conversion now, upfront.
+            if cfg.infer_half and self._device.startswith("cuda"):
+                self._model.model.half()
             print(
                 f"[detector] YOLOv8 ready - model:{cfg.model_path}  "
-                f"conf:{cfg.confidence}  device:{self._model.device}"
+                f"conf:{cfg.confidence}  device:{self._device}  "
+                f"half:{cfg.infer_half}"
             )
         except Exception as exc:
             print(f"[detector] Failed to load model: {exc}")
@@ -65,7 +93,7 @@ class DetectorService:
     def _inference_loop(self) -> None:
         cfg = self._cfg
         skip = max(0, cfg.infer_skip_frames)
-        device = cfg.device if cfg.device else None
+        device = self._device
 
         last_frame_id = -1
         skip_counter  = 0
@@ -101,6 +129,7 @@ class DetectorService:
                     conf=cfg.confidence,
                     iou=cfg.iou,
                     device=device,
+                    half=cfg.infer_half,
                     verbose=False,
                 )
             except Exception as exc:

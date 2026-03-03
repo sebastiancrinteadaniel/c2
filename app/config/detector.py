@@ -30,8 +30,9 @@ class DetectorSettings(BaseSettings):
     model_path:          str   = "models/yolov8n.pt"
     confidence:          float = 0.45
     iou:                 float = 0.45
-    device:              str   = ""         # "" = ultralytics auto-select
+    device:              str   = ""         # "" = auto-select (cuda:0 if available)
     infer_skip_frames:   int   = 0          # run every N+1 frames
+    infer_half:          bool  = True       # FP16 inference; faster + avoids FP32 cuBLAS issues on Blackwell GPUs
 
     # Bounding box overlay colour (BGR) - defaults to dashboard cyan
     box_color_b: int = 0
