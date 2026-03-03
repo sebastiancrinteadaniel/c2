@@ -8,13 +8,16 @@ from app.routes.pages import all_routers as page_routers
 from app.routes.webrtc import close_all_connections
 from app.services.camera import start_camera, stop_camera
 from app.services.detector import start_detector, stop_detector
+from app.services.ros2_publisher import start_ros2_publisher, stop_ros2_publisher
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     start_camera()
     start_detector()
+    start_ros2_publisher()
     yield
+    stop_ros2_publisher()
     stop_detector()
     await close_all_connections()
     stop_camera()

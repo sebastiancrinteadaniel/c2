@@ -7,6 +7,39 @@ from fastapi.responses import HTMLResponse
 from pydantic import BaseModel
 
 from app.routes.pages._shared import _render
+from app.services.ros2_publisher import publish_command
+
+# ---------------------------------------------------------------------------
+# Hardcoded FSM command (from context.md) — swap for dynamic payload later
+# ---------------------------------------------------------------------------
+HARDCODED_FSM_COMMAND = {
+    "end_effector_type": "gripper",
+    "loop": False,
+    "states": [
+        {
+            "type": "SetPositionState",
+            "joint_angles": [0.0, 0.0, 1.8, 0.0, 0.0, 0.0],
+        },
+        {
+            "type": "ReachTargetState",
+            "point_goal": [0.0, -0.20, 0.04, 0.7071, 0.7071, 0.0, 0.0],
+        },
+        {
+            "type": "EndEffectorState",
+            "action": "close",
+            "duration": 1.0,
+        },
+        {
+            "type": "ReachTargetState",
+            "point_goal": [0.15, -0.13, 0.08, 0.7071, 0.7071, 0.0, 0.0],
+        },
+        {
+            "type": "EndEffectorState",
+            "action": "open",
+            "duration": 1.0,
+        },
+    ],
+}
 
 router = APIRouter()
 
@@ -52,5 +85,6 @@ async def industry_start(payload: MappingPayload):
         for e in payload.mapping:
             print(f"    - part={e.part!r:20s}  bin={e.bin}")
     print("="*40 + "\n")
-    # TODO: trigger robot sequence here
+    publish_command(HARDCODED_FSM_COMMAND)
+    print("[industry] FSM command published.")
     return {"status": "started"}
