@@ -57,7 +57,7 @@ class CameraSettings(BaseSettings):
     camera_index: int = 0
 
     #  WebRTC encoder bandwidth hint 
-    webrtc_video_kbps: int = 4000
+    webrtc_video_kbps: int = 6000
 
     #  V4L2 pixel format (Linux). "MJPG" avoids raw YUYV bandwidth ceiling
     #  that limits 1080p to ~5 fps on USB 2.0. Safe to set on Windows too.

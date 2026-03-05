@@ -51,11 +51,9 @@
 <div class="rp-section">
   <div class="rp-section-header">Robotic Arm</div>
   <select class="rp-select" id="st-arm-port">
-    <option value="">Select port / device…</option>
-    <option value="com3">COM3</option>
-    <option value="com4">COM4</option>
-    <option value="ttyusb0">/dev/ttyUSB0</option>
-    <option value="ttyusb1">/dev/ttyUSB1</option>
+    <option value="">Select attachment</option>
+    <option value="gripper" {% if selected_end_effector == 'gripper' %}selected{% endif %}>GRIPPER</option>
+    <option value="pump" {% if selected_end_effector == 'pump' %}selected{% endif %}>PUMP</option>
   </select>
 
   <div class="st-joint-header">
@@ -151,7 +149,37 @@
     await _post('/api/settings/init', {});
   }
 
+  async function _loadEndEffector() {
+    const selectEl = document.getElementById('st-arm-port');
+    if (!selectEl) return;
+    try {
+      const res = await fetch('/api/settings/end-effector');
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.end_effector_type) return;
+      selectEl.value = data.end_effector_type;
+    } catch (err) {
+      console.error('[settings] failed loading end effector:', err);
+    }
+  }
+
+  async function _saveEndEffector() {
+    const selectEl = document.getElementById('st-arm-port');
+    const value = selectEl?.value;
+    if (!value) return;
+    const data = await _post('/api/settings/end-effector', { end_effector_type: value });
+    if (data?.status === 'ok') {
+      window.location.reload();
+    }
+  }
+
   //  Start task 
   document.getElementById('btn-start-task').addEventListener('click', () => initializeArm());
+
+  const endEffectorSelect = document.getElementById('st-arm-port');
+  if (endEffectorSelect) {
+    endEffectorSelect.addEventListener('change', _saveEndEffector);
+  }
+
+  _loadEndEffector();
 </script>
 {% endblock %}

@@ -9,6 +9,8 @@ from fastapi.responses import HTMLResponse
 from pydantic import BaseModel
 
 from app.routes.pages._shared import _render
+from app.services.fsm_command import build_hardcoded_fsm_command
+from app.services.ros2_publisher import publish_command
 
 router = APIRouter()
 
@@ -63,5 +65,6 @@ async def interactive_start(payload: StartPayload):
     print(f"  Detection Active: {payload.detection}")
     print(f"  Targets Order:    {payload.targets}")
     print("="*40 + "\n")
-    # TODO: trigger robot interactive sequence
+    publish_command(build_hardcoded_fsm_command())
+    print("[interactive] FSM command published.")
     return {"status": "started"}

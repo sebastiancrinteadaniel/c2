@@ -1,0 +1,51 @@
+{
+  "profiles": [
+    {
+      "name": "Hardware Mix",
+      "mapping": [
+        {
+          "part": "Screw",
+          "quantity": 30
+        },
+        {
+          "part": "Bolt",
+          "quantity": 20
+        },
+        {
+          "part": "Gear (24T)",
+          "quantity": 10
+        },
+        {
+          "part": "Gear (12T)",
+          "quantity": 15
+        }
+      ]
+    },
+    {
+      "name": "Gears Only",
+      "mapping": [
+        {
+          "part": "Gear (24T)",
+          "quantity": 25
+        },
+        {
+          "part": "Gear (12T)",
+          "quantity": 25
+        }
+      ]
+    },
+    {
+      "name": "Screws & Bolts",
+      "mapping": [
+        {
+          "part": "Screw",
+          "quantity": 40
+        },
+        {
+          "part": "Bolt",
+          "quantity": 35
+        }
+      ]
+    }
+  ]
+}

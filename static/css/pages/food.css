@@ -28,6 +28,24 @@
   gap: 6px;
 }
 
+.fd-number {
+  background: #171b26;
+  border: 1px solid #1a1e28;
+  border-radius: 4px;
+  color: var(--text-primary);
+  font-family: var(--font);
+  font-size: 13px;
+  font-weight: 600;
+  text-align: center;
+  padding: 8px 4px;
+  width: 100%;
+}
+
+.fd-number:focus {
+  outline: none;
+  border-color: var(--cyan-dim);
+}
+
 .fd-input {
   width: 100%;
   background: var(--bg-input);

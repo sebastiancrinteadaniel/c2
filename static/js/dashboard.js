@@ -22,6 +22,22 @@
   const videoEl = document.getElementById('stream');
   const fpsEl = document.getElementById('status-fps');
   const latEl = document.getElementById('status-latency');
+  const cpuEl = document.getElementById('status-cpu');
+  const ramEl = document.getElementById('status-ram');
+  const gpuEl = document.getElementById('status-gpu');
+
+  function applySystemMetrics(data) {
+    if (!cpuEl || !ramEl || !gpuEl) return;
+    if (!data) return;
+
+    cpuEl.textContent = typeof data.cpu_percent === 'number' ? `${data.cpu_percent.toFixed(0)}%` : '--';
+    ramEl.textContent = typeof data.ram_percent === 'number' ? `${data.ram_percent.toFixed(0)}%` : '--';
+    gpuEl.textContent = typeof data.gpu_percent === 'number' ? `${data.gpu_percent.toFixed(0)}%` : '--';
+  }
+
+  window.addEventListener('system-metrics', (evt) => {
+    applySystemMetrics(evt.detail);
+  });
 
   if (videoEl && fpsEl && 'requestVideoFrameCallback' in videoEl) {
     let lastTs = null;

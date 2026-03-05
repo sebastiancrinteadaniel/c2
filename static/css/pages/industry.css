@@ -8,6 +8,18 @@
   /* Tighter gap */
 }
 
+.rp-profile-status {
+  min-height: 16px;
+  margin-top: 6px;
+  color: var(--text-secondary);
+  font-size: 11px;
+  letter-spacing: 0.02em;
+}
+
+.rp-profile-status--error {
+  color: var(--red);
+}
+
 .rp-btn {
   display: flex;
   align-items: center;

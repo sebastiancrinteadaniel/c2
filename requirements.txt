@@ -372,8 +372,6 @@ ubuntu-drivers-common==0.0.0
 ubuntu-pro-client==8001
 ufoLib2==0.13.1
 ufw==0.36.1
-# Editable install with no version control (ultralytics==8.3.235)
--e /home/sebastian/ultralytics
 ultralytics-thop==2.0.18
 unattended-upgrades==0.1
 unicodedata2==14.0.0

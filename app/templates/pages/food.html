@@ -22,7 +22,7 @@
   </div>
   <div class="fd-class-header">
     <span>Food Product</span>
-    <span>Bin</span>
+    <span>Quantity</span>
   </div>
   <div class="fd-class-row">
     <select class="rp-select">
@@ -31,13 +31,7 @@
       <option>Chocolate Bar</option>
       <option>Assorted Mints</option>
     </select>
-    <select class="rp-select">
-      <option value="">Select bin...</option>
-      <option>0</option>
-      <option>1</option>
-      <option>2</option>
-      <option>3</option>
-    </select>
+    <input type="number" class="fd-number" value="0" min="0" max="99" />
   </div>
   <div class="fd-class-row">
     <select class="rp-select">
@@ -46,13 +40,7 @@
       <option>Chocolate Bar</option>
       <option>Assorted Mints</option>
     </select>
-    <select class="rp-select">
-      <option value="">Select bin...</option>
-      <option>0</option>
-      <option>1</option>
-      <option>2</option>
-      <option>3</option>
-    </select>
+    <input type="number" class="fd-number" value="0" min="0" max="99" />
   </div>
   <div class="fd-class-row">
     <select class="rp-select">
@@ -61,13 +49,7 @@
       <option>Chocolate Bar</option>
       <option>Assorted Mints</option>
     </select>
-    <select class="rp-select">
-      <option value="">Select bin...</option>
-      <option>0</option>
-      <option>1</option>
-      <option>2</option>
-      <option>3</option>
-    </select>
+    <input type="number" class="fd-number" value="0" min="0" max="99" />
   </div>
   <div class="fd-class-row">
     <select class="rp-select">
@@ -76,13 +58,7 @@
       <option>Chocolate Bar</option>
       <option>Assorted Mints</option>
     </select>
-    <select class="rp-select">
-      <option value="">Select bin...</option>
-      <option>0</option>
-      <option>1</option>
-      <option>2</option>
-      <option>3</option>
-    </select>
+    <input type="number" class="fd-number" value="0" min="0" max="99" />
   </div>
   <div class="fd-class-row">
     <select class="rp-select">
@@ -91,13 +67,7 @@
       <option>Chocolate Bar</option>
       <option>Assorted Mints</option>
     </select>
-    <select class="rp-select">
-      <option value="">Select bin...</option>
-      <option>0</option>
-      <option>1</option>
-      <option>2</option>
-      <option>3</option>
-    </select>
+    <input type="number" class="fd-number" value="0" min="0" max="99" />
   </div>
 </div>
 
@@ -158,13 +128,11 @@
       const mapping = [];
       const rows = document.querySelectorAll('.fd-class-row');
       rows.forEach(row => {
-        const selects = row.querySelectorAll('select');
-        if (selects.length === 2) {
-          const product = selects[0].value;
-          const bin = selects[1].value;
-          if (product && bin) {
-            mapping.push({ product, bin });
-          }
+        const product = row.querySelector('select')?.value || '';
+        const quantityRaw = parseInt(row.querySelector('input')?.value ?? '0', 10);
+        const quantity = Number.isNaN(quantityRaw) ? 0 : quantityRaw;
+        if (product) {
+          mapping.push({ product, quantity });
         }
       });
       try {

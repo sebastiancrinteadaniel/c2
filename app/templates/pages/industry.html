@@ -19,9 +19,6 @@
   <div class="rp-section-header">Sorting Profiles</div>
   <select class="rp-select" id="profile-select">
     <option value="">Select a profile…</option>
-    <option value="hardware">Hardware Mix</option>
-    <option value="gears">Gears Only</option>
-    <option value="screws">Screws &amp; Bolts</option>
   </select>
   <div class="rp-profile-actions">
     <button class="rp-btn rp-btn--new" onclick="profileAction('new')">
@@ -34,11 +31,12 @@
       <img src="/static/svg/icon-delete.svg" alt="" onerror="this.style.display='none'" />Delete
     </button>
   </div>
+  <div class="rp-profile-status" id="profile-status"></div>
 </div>
 
-{# PART TO BIN MAPPING #}
+{# PART TO QUANTITY MAPPING #}
 <div class="rp-section">
-  <div class="rp-section-header">Part to Bin Mapping</div>
+  <div class="rp-section-header">Part to Quantity Mapping</div>
 
   <div class="rp-mapping-row">
     <select class="rp-select">
@@ -96,79 +94,201 @@
 
 {% block page_scripts %}
 <script>
+  const PROFILE_LIST_URL = '/api/industry/profiles';
+  const PROFILE_CREATE_URL = '/api/industry/profiles';
+  const PROFILE_UPDATE_URL = '/api/industry/profiles/update';
+  const PROFILE_DELETE_URL = '/api/industry/profiles/delete';
+
+  let industryProfiles = [];
+
   //  Helpers 
   function _collectMapping() {
     const rows = document.querySelectorAll('.rp-mapping-row');
     const mapping = [];
     rows.forEach(row => {
       const part = row.querySelector('select').value;
-      const bin = parseInt(row.querySelector('input').value, 10);
-      if (part) mapping.push({ part, bin });
+      const quantity = parseInt(row.querySelector('input').value, 10);
+      if (part) mapping.push({ part, quantity });
     });
     return mapping;
   }
 
+  function _setStatus(message, isError = false) {
+    const statusEl = document.getElementById('profile-status');
+    if (!statusEl) return;
+    statusEl.textContent = message || '';
+    statusEl.classList.toggle('rp-profile-status--error', isError);
+  }
+
+  function _normalizeProfileName(name) {
+    return (name || '').trim().toLowerCase();
+  }
+
+  function _renderProfileSelect(selectedName = '') {
+    const sel = document.getElementById('profile-select');
+    const normalizedSelectedName = _normalizeProfileName(selectedName);
+
+    sel.innerHTML = '';
+    sel.add(new Option('Select a profile…', ''));
+
+    industryProfiles.forEach(profile => {
+      const option = new Option(profile.name, profile.name);
+      sel.add(option);
+    });
+
+    if (!normalizedSelectedName) return;
+
+    const match = industryProfiles.find(
+      profile => _normalizeProfileName(profile.name) === normalizedSelectedName
+    );
+
+    if (match) {
+      sel.value = match.name;
+    }
+  }
+
+  function _applyProfileToRows(profileName) {
+    const rows = document.querySelectorAll('.rp-mapping-row');
+    const normalizedName = _normalizeProfileName(profileName);
+    const profile = industryProfiles.find(
+      p => _normalizeProfileName(p.name) === normalizedName
+    );
+
+    rows.forEach(row => {
+      row.querySelector('select').value = '';
+      row.querySelector('input').value = 0;
+    });
+
+    if (!profile) return;
+
+    profile.mapping.slice(0, rows.length).forEach((entry, index) => {
+      const row = rows[index];
+      row.querySelector('select').value = entry.part;
+      row.querySelector('input').value = entry.quantity;
+    });
+  }
+
   async function _post(url, body) {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      throw new Error(data.detail || 'Request failed');
+    }
+    return data;
+  }
+
+  async function _loadProfiles(selectedName = '') {
     try {
-      const res = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-      });
-      return await res.json();
+      const res = await fetch(PROFILE_LIST_URL);
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data.detail || 'Failed to load profiles');
+      }
+
+      industryProfiles = Array.isArray(data.profiles) ? data.profiles : [];
+      _renderProfileSelect(selectedName);
+      const sel = document.getElementById('profile-select');
+      _applyProfileToRows(sel.value);
     } catch (err) {
-      console.error('[industry] fetch error:', err);
+      console.error('[industry] load profiles error:', err);
+      _setStatus(err.message || 'Failed to load profiles', true);
     }
   }
 
   //  Profile actions 
-  function profileAction(action) {
+  async function profileAction(action) {
     const sel = document.getElementById('profile-select'); // Changed from rp-profiles to profile-select
-    const profileName = sel.options[sel.selectedIndex]?.text || 'Unknown';
+    const profileName = sel.value;
 
     if (action === 'new') {
       const name = prompt('New profile name:');
-      if (name) sel.add(new Option(name, name, true, true));
+      const trimmedName = (name || '').trim();
+      if (!trimmedName) return;
+
+      const mapping = _collectMapping();
+
+      try {
+        await _post(PROFILE_CREATE_URL, { name: trimmedName, mapping });
+        await _loadProfiles(trimmedName);
+        _setStatus(`Profile "${trimmedName}" created.`);
+      } catch (err) {
+        _setStatus(err.message || 'Failed to create profile', true);
+      }
     } else if (action === 'save') {
       if (!sel.value) return alert('Select a profile first.');
-      // Backend will handle the save
+      const mapping = _collectMapping();
+
+      try {
+        await _post(PROFILE_UPDATE_URL, { name: profileName, mapping });
+        await _loadProfiles(profileName);
+        _setStatus(`Profile "${profileName}" saved.`);
+      } catch (err) {
+        _setStatus(err.message || 'Failed to save profile', true);
+      }
     } else if (action === 'delete') {
       if (!sel.value) return alert('Select a profile first.');
       if (confirm(`Delete profile: ${profileName}?`)) {
-        sel.remove(sel.selectedIndex);
+        try {
+          await _post(PROFILE_DELETE_URL, { name: profileName });
+          await _loadProfiles('');
+          _setStatus(`Profile "${profileName}" deleted.`);
+        } catch (err) {
+          _setStatus(err.message || 'Failed to delete profile', true);
+        }
       }
     }
   }
 
   //  Apply mapping (APPLY GLOBAL MAPPING button) 
-  function applyMapping() {
+  async function applyMapping() {
     const mapping = _collectMapping();
     if (!mapping.length) return alert('No mappings configured.');
-    _post('/api/industry/mapping', { mapping });
+    try {
+      await _post('/api/industry/mapping', { mapping });
+      _setStatus('Global mapping applied.');
+    } catch (err) {
+      _setStatus(err.message || 'Failed to apply mapping', true);
+    }
   }
 
-  //  Auto-send mapping whenever any row changes 
-  document.querySelectorAll('.rp-mapping-row select, .rp-mapping-row input')
-    .forEach(el => el.addEventListener('change', applyMapping));
+  const profileSelect = document.getElementById('profile-select');
+  if (profileSelect) {
+    profileSelect.addEventListener('change', () => {
+      _applyProfileToRows(profileSelect.value);
+      if (profileSelect.value) {
+        _setStatus(`Loaded profile "${profileSelect.value}".`);
+      } else {
+        _setStatus('');
+      }
+    });
+  }
 
   //  Start Task footer button 
   const startBtn = document.getElementById('btn-start-task');
   if (startBtn) {
     startBtn.addEventListener('click', async () => {
-      const mapping = _collectMapping();
-      console.log('[industry] Start Task clicked. Collected mapping:', mapping);
       try {
         const res = await fetch('/api/industry/start', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ mapping })
         });
-        const data = await res.json();
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          throw new Error(data.detail || 'Failed to start task');
+        }
         console.log('[industry] Start response:', data);
+        _setStatus('Task started using last applied mapping.');
       } catch (err) {
         console.error('Failed to start industry task:', err);
+        _setStatus(err.message || 'Failed to start task', true);
       }
     });
   }
+
+  _loadProfiles();
 </script>
 {% endblock %}

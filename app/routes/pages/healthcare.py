@@ -7,6 +7,8 @@ from fastapi.responses import HTMLResponse
 from pydantic import BaseModel
 
 from app.routes.pages._shared import _render
+from app.services.fsm_command import build_hardcoded_fsm_command
+from app.services.ros2_publisher import publish_command
 
 router = APIRouter()
 
@@ -37,5 +39,6 @@ async def healthcare_start(payload: HealthcareStart):
     print("="*40)
     print(f"  Injection Length: {payload.injection_length}mm")
     print("="*40 + "\n")
-    #  TODO: trigger robot injection sequence 
+    publish_command(build_hardcoded_fsm_command())
+    print("[healthcare] FSM command published.")
     return {"status": "started"}

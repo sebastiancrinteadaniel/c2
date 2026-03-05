@@ -5,9 +5,11 @@ Food QA - quality assurance page + API.
 from fastapi import APIRouter, Request
 from fastapi.responses import HTMLResponse
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from app.routes.pages._shared import _render
+from app.services.fsm_command import build_hardcoded_fsm_command
+from app.services.ros2_publisher import publish_command
 
 router = APIRouter()
 
@@ -16,7 +18,7 @@ router = APIRouter()
 
 class MappingEntry(BaseModel):
     product: str
-    bin: str
+    quantity: int = Field(ge=0, le=99)
 
 class MappingPayload(BaseModel):
     mapping: list[MappingEntry]
@@ -48,7 +50,8 @@ async def food_start(payload: MappingPayload):
     else:
         print("  Current product mapping:")
         for e in payload.mapping:
-            print(f"    - product={e.product!r:20s}  bin={e.bin}")
+            print(f"    - product={e.product!r:20s}  quantity={e.quantity}")
     print("="*40 + "\n")
-    #  TODO: trigger robot sequence here 
+    publish_command(build_hardcoded_fsm_command())
+    print("[food] FSM command published.")
     return {"status": "started"}

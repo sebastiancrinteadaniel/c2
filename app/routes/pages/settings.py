@@ -4,9 +4,10 @@ Settings page + API.
 
 from fastapi import APIRouter, Request
 from fastapi.responses import HTMLResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from app.routes.pages._shared import _render
+from app.services.global_settings import get_end_effector_type, set_end_effector_type
 
 router = APIRouter()
 
@@ -15,7 +16,12 @@ router = APIRouter()
 
 @router.get("/settings", response_class=HTMLResponse)
 async def settings_page(request: Request):
-    return _render(request, "settings", "pages/settings.html")
+    return _render(
+        request,
+        "settings",
+        "pages/settings.html",
+        selected_end_effector=get_end_effector_type(),
+    )
 
 
 #  Models 
@@ -25,6 +31,10 @@ class ModelDeploy(BaseModel):
 
 class ArmInit(BaseModel):
     port: str = ""
+
+
+class EndEffectorPayload(BaseModel):
+    end_effector_type: str = Field(pattern="^(gripper|pump)$")
 
 
 #  API 
@@ -58,3 +68,15 @@ async def initialize_arm_basic():
     print("\n[settings] > INITIALIZING ARM to safe zero position")
     #  TODO: send zero position commands 
     return {"status": "initialized"}
+
+
+@router.get("/api/settings/end-effector")
+async def get_end_effector_setting():
+    return {"end_effector_type": get_end_effector_type()}
+
+
+@router.post("/api/settings/end-effector")
+async def set_end_effector_setting(payload: EndEffectorPayload):
+    value = set_end_effector_type(payload.end_effector_type)
+    print(f"\n[settings] End effector set -> {value}")
+    return {"status": "ok", "end_effector_type": value}

@@ -45,7 +45,7 @@ def start_ros2_publisher() -> None:
         _node = rclpy.create_node("mycobot_fsm_publisher")
         _publisher = _node.create_publisher(RosString, "/mycobot/fsm_command", 10)
 
-        _spin_thread = threading.Thread(
+        _spin_thread = threading.Thread(    
             target=rclpy.spin,
             args=(_node,),
             daemon=True,

@@ -7,6 +7,7 @@ from pydantic import BaseModel
 from app.services.camera import get_camera_track
 from app.config.camera import get_camera_settings
 from app.services.detector import get_detector
+from app.services.system_metrics import get_system_metrics
 
 import json
 
@@ -127,7 +128,17 @@ async def _wait_for_ice(pc: RTCPeerConnection, timeout: float = 5.0) -> None:
 
 async def _send_detections(channel) -> None:
     """Polls the detector and sends results over the DataChannel."""
+    last_metrics_push = 0.0
     while channel.readyState == "open":
+        now = asyncio.get_running_loop().time()
+
+        if now - last_metrics_push >= 5.0:
+            try:
+                channel.send(json.dumps({"system_metrics": get_system_metrics()}))
+            except Exception as e:
+                print(f"[webrtc] Metrics DataChannel send error: {e}")
+            last_metrics_push = now
+
         dets = get_detector().latest_detections
         if dets:
             try:

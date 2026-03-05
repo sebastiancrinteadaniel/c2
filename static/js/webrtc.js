@@ -20,6 +20,9 @@
       if (data.detections?.length > 0) {
         updateDetectionLog(data.detections);
       }
+      if (data.system_metrics) {
+        window.dispatchEvent(new CustomEvent('system-metrics', { detail: data.system_metrics }));
+      }
     } catch (e) { }
   };
 
