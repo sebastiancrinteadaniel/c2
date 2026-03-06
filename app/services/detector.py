@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import threading
 import time
 from typing import Optional
@@ -11,11 +12,8 @@ from ultralytics import YOLO
 from app.services.camera import set_detection_provider
 from app.services.camera import get_camera_track
 
-
-# Detection dict shape:
-#   { label: str, confidence: float, x1: float, y1: float, x2: float, y2: float }
-#   coordinates normalised 0-1 relative to the INFER resolution frame.
 Detection = dict
+logger = logging.getLogger(__name__)
 
 
 class DetectorService:
@@ -32,7 +30,7 @@ class DetectorService:
         self._cfg = cfg
 
         if not cfg.detector_enabled:
-            print("[detector] Disabled via config - skipping model load")
+            logger.info("[detector] Disabled via config - skipping model load")
             return
 
         self._running = True
@@ -44,14 +42,12 @@ class DetectorService:
         if self._thread:
             self._thread.join(timeout=3)
         self.latest_detections = []
-        print("[detector] Stopped")
+        logger.info("[detector] Stopped")
 
 
     def _load_and_run(self) -> None:
         cfg = self._cfg
 
-        # Resolve inference device explicitly — never rely on Ultralytics auto-select
-        # which can silently fall back to CPU even when CUDA is available.
         if cfg.device:
             self._device = cfg.device
         elif torch.cuda.is_available():
@@ -59,9 +55,6 @@ class DetectorService:
         else:
             self._device = "cpu"
 
-        # RTX 5000 series (Blackwell) and some other new GPUs hit
-        # CUBLAS_STATUS_INVALID_VALUE with FP32 sgemm in torch 2.x.
-        # TF32 routes those ops through tensor cores and avoids the bug.
         if self._device.startswith("cuda"):
             torch.backends.cuda.matmul.allow_tf32 = True
             torch.backends.cudnn.allow_tf32 = True
@@ -70,22 +63,18 @@ class DetectorService:
         try:
             self._model = YOLO(cfg.model_path)
             self._model.to(self._device)
-            # Ultralytics converts weights to FP16 lazily on the first inference
-            # call, meaning the very first cublasSgemm (FP32) still fires and
-            # crashes on Blackwell. Force the conversion now, upfront.
-            if cfg.infer_half and self._device.startswith("cuda"):
-                self._model.model.half()
-            print(
-                f"[detector] YOLOv8 ready - model:{cfg.model_path}  "
-                f"conf:{cfg.confidence}  device:{self._device}  "
-                f"half:{cfg.infer_half}"
+            logger.info(
+                "[detector] YOLOv8 ready - model:%s conf:%s device:%s half:%s",
+                cfg.model_path,
+                cfg.confidence,
+                self._device,
+                cfg.infer_half,
             )
-        except Exception as exc:
-            print(f"[detector] Failed to load model: {exc}")
+        except Exception:
+            logger.exception("[detector] Failed to load model")
             self._running = False
             return
 
-        # Register ourselves as the provider so camera.py draws our boxes
         set_detection_provider(lambda: self.latest_detections)
 
         self._inference_loop()
@@ -103,7 +92,6 @@ class DetectorService:
             frame_id = camera.infer_frame_id
             frame    = camera.latest_bgr_infer
 
-            #  Frame-skip logic 
             if frame is None or frame_id == last_frame_id:
                 time.sleep(0.005)
                 continue
@@ -118,11 +106,9 @@ class DetectorService:
 
             last_frame_id = frame_id
 
-            #  Copy frame so camera thread can overwrite safely 
             frame = frame.copy()
             h, w = frame.shape[:2]
 
-            #  Run inference 
             try:
                 results = self._model(
                     frame,
@@ -132,12 +118,11 @@ class DetectorService:
                     half=cfg.infer_half,
                     verbose=False,
                 )
-            except Exception as exc:
-                print(f"[detector] Inference error: {exc}")
+            except Exception:
+                logger.exception("[detector] Inference error")
                 time.sleep(0.1)
                 continue
 
-            #  Parse results -> normalised detections 
             detections: list[Detection] = []
             for result in results:
                 boxes = result.boxes
@@ -146,7 +131,7 @@ class DetectorService:
                 names = result.names
                 for box in boxes:
                     cls_id = int(box.cls[0])
-                    xyxy   = box.xyxy[0].tolist()   # pixel coords in infer res
+                    xyxy   = box.xyxy[0].tolist()
                     detections.append({
                         "label":      names[cls_id],
                         "confidence": float(box.conf[0]),
@@ -156,11 +141,9 @@ class DetectorService:
                         "y2": xyxy[3] / h,
                     })
 
-            # Atomic replacement
             self.latest_detections = detections
 
 
-#  Singleton 
 _detector: Optional[DetectorService] = None
 
 

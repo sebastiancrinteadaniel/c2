@@ -12,8 +12,8 @@ class DetectorSettings(BaseSettings):
         MODEL_PATH=yolov8n.pt
         CONFIDENCE=0.45
         IOU=0.45
-        DEVICE=          # empty = auto (GPU if available, else CPU)
-        INFER_SKIP_FRAMES=0   # 0 = every frame, 2 = every 3rd frame
+        DEVICE=
+        INFER_SKIP_FRAMES=0
         BOX_COLOR_B=0
         BOX_COLOR_G=212
         BOX_COLOR_R=255
@@ -30,11 +30,10 @@ class DetectorSettings(BaseSettings):
     model_path:          str   = "models/yolov8n.pt"
     confidence:          float = 0.45
     iou:                 float = 0.45
-    device:              str   = ""         # "" = auto-select (cuda:0 if available)
-    infer_skip_frames:   int   = 0          # run every N+1 frames
-    infer_half:          bool  = True       # FP16 inference; faster + avoids FP32 cuBLAS issues on Blackwell GPUs
+    device:              str   = ""
+    infer_skip_frames:   int   = 0
+    infer_half:          bool  = True
 
-    # Bounding box overlay colour (BGR) - defaults to dashboard cyan
     box_color_b: int = 0
     box_color_g: int = 212
     box_color_r: int = 255

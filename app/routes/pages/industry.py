@@ -2,6 +2,7 @@
 Industry 5.0 - sorting page + API.
 """
 
+import logging
 import json
 from pathlib import Path
 from threading import Lock
@@ -16,6 +17,7 @@ from app.services.fsm_command import build_hardcoded_fsm_command
 from app.services.ros2_publisher import publish_command
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
 PROFILES_PATH = Path(__file__).resolve().parents[2] / "data" / "industry_profiles.json"
 _profiles_lock = Lock()
@@ -130,16 +132,10 @@ def _write_profiles(data: dict):
         _validate_profiles_payload(data)
         PROFILES_PATH.write_text(json.dumps(data, indent=2), encoding="utf-8")
 
-
-#  Page 
-
 @router.get("/", response_class=HTMLResponse)
 async def industry_page(request: Request):
     _ensure_profiles_file()
     return _render(request, "industry", "pages/industry.html")
-
-
-#  Models 
 
 class MappingEntry(BaseModel):
     part: str = Field(min_length=1)
@@ -171,9 +167,6 @@ class ProfileUpdatePayload(BaseModel):
 class ProfileDeletePayload(BaseModel):
     name: str = Field(min_length=1)
 
-
-#  API 
-
 @router.post("/api/industry/mapping")
 async def industry_mapping(payload: MappingPayload):
     """Called only when the user applies the global mapping."""
@@ -181,9 +174,9 @@ async def industry_mapping(payload: MappingPayload):
         _applied_mapping.clear()
         _applied_mapping.extend([entry.model_dump() for entry in payload.mapping])
 
-    print("\n[industry] Mapping updated:")
+    logger.info("[industry] Mapping updated:")
     for e in payload.mapping:
-        print(f"  part={e.part!r:20s}  quantity={e.quantity}")
+        logger.info("  part=%r  quantity=%s", e.part, e.quantity)
     return {"status": "ok"}
 
 
@@ -196,15 +189,15 @@ async def industry_start():
     if not current_mapping:
         raise HTTPException(status_code=400, detail="No applied mapping. Press 'Apply Global Mapping' first.")
 
-    print("\n" + "="*40)
-    print("[industry] > START TASK TRIGGERED")
-    print("="*40)
-    print("  Applied mapping setup:")
+    logger.info("%s", "=" * 40)
+    logger.info("[industry] > START TASK TRIGGERED")
+    logger.info("%s", "=" * 40)
+    logger.info("  Applied mapping setup:")
     for entry in current_mapping:
-        print(f"    - part={entry['part']!r:20s}  quantity={entry['quantity']}")
-    print("="*40 + "\n")
+        logger.info("    - part=%r  quantity=%s", entry["part"], entry["quantity"])
+    logger.info("%s", "=" * 40)
     publish_command(build_hardcoded_fsm_command())
-    print("[industry] FSM command published.")
+    logger.info("[industry] FSM command published.")
     return {"status": "started"}
 
 

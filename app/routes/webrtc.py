@@ -1,4 +1,5 @@
 import asyncio
+import logging
 
 from aiortc import RTCPeerConnection, RTCSessionDescription
 from fastapi import APIRouter
@@ -12,8 +13,7 @@ from app.services.system_metrics import get_system_metrics
 import json
 
 router = APIRouter()
-
-# Keep track of peer connections so we can close stale ones
+logger = logging.getLogger(__name__)
 _peer_connections: set[RTCPeerConnection] = set()
 
 
@@ -32,7 +32,7 @@ async def handle_offer(body: OfferBody):
     @pc.on("connectionstatechange")
     async def on_state_change():
         state = pc.connectionState
-        print(f"[webrtc] Connection state -> {state}")
+        logger.info("[webrtc] Connection state -> %s", state)
         if state in ("failed", "closed", "disconnected"):
             await pc.close()
             _peer_connections.discard(pc)
@@ -40,17 +40,14 @@ async def handle_offer(body: OfferBody):
     @pc.on("datachannel")
     def on_datachannel(channel):
         if channel.label == "detections":
-            print("[webrtc] Detection DataChannel opened")
-
-            # Spawn a task to poll and send detections
+            logger.info("[webrtc] Detection DataChannel opened")
             task = asyncio.create_task(_send_detections(channel))
 
             @channel.on("close")
             def on_close():
-                print("[webrtc] Detection DataChannel closed")
+                logger.info("[webrtc] Detection DataChannel closed")
                 task.cancel()
 
-    # Add the singleton camera track
     camera = get_camera_track()
     pc.addTrack(camera)
 
@@ -58,12 +55,7 @@ async def handle_offer(body: OfferBody):
     answer = await pc.createAnswer()
     await pc.setLocalDescription(answer)
 
-    # Wait for ICE gathering to finish so the answer contains host candidates
     await _wait_for_ice(pc)
-
-    # Inject bandwidth hint into the video m-section so VP8 targets the
-    # configured bitrate. aiortc has no public bitrate API so SDP patching
-    # is the reliable approach.
     patched_sdp = _inject_bandwidth(
         pc.localDescription.sdp,
         kbps=get_camera_settings().webrtc_video_kbps,
@@ -94,8 +86,6 @@ def _inject_bandwidth(sdp: str, kbps: int) -> str:
             continue
         elif line.startswith("m="):
             in_video = False
-
-        # Write b=AS right after the c= line inside the video section
         if in_video and not bw_written and line.startswith("c="):
             patched.append(line)
             patched.append(f"b=AS:{kbps}")
@@ -123,7 +113,7 @@ async def _wait_for_ice(pc: RTCPeerConnection, timeout: float = 5.0) -> None:
     try:
         await asyncio.wait_for(done, timeout=timeout)
     except asyncio.TimeoutError:
-        print("[webrtc] ICE gathering timed out - sending partial candidates")
+        logger.warning("[webrtc] ICE gathering timed out - sending partial candidates")
 
 
 async def _send_detections(channel) -> None:
@@ -135,17 +125,17 @@ async def _send_detections(channel) -> None:
         if now - last_metrics_push >= 5.0:
             try:
                 channel.send(json.dumps({"system_metrics": get_system_metrics()}))
-            except Exception as e:
-                print(f"[webrtc] Metrics DataChannel send error: {e}")
+            except Exception:
+                logger.exception("[webrtc] Metrics DataChannel send error")
             last_metrics_push = now
 
         dets = get_detector().latest_detections
         if dets:
             try:
                 channel.send(json.dumps({"detections": dets}))
-            except Exception as e:
-                print(f"[webrtc] DataChannel send error: {e}")
-        await asyncio.sleep(0.1)  # 10Hz updates
+            except Exception:
+                logger.exception("[webrtc] DataChannel send error")
+        await asyncio.sleep(0.1)
 
 
 async def close_all_connections() -> None:

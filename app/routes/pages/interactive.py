@@ -2,6 +2,8 @@
 Interactive mode page + API.
 """
 
+import logging
+
 from typing import List
 
 from fastapi import APIRouter, Request
@@ -13,16 +15,11 @@ from app.services.fsm_command import build_hardcoded_fsm_command
 from app.services.ros2_publisher import publish_command
 
 router = APIRouter()
-
-
-#  Page 
+logger = logging.getLogger(__name__)
 
 @router.get("/interactive", response_class=HTMLResponse)
 async def interactive_page(request: Request):
     return _render(request, "interactive", "pages/interactive.html")
-
-
-#  Models 
 
 class DetectionToggle(BaseModel):
     enabled: bool
@@ -34,37 +31,32 @@ class StartPayload(BaseModel):
     targets: List[str]
     detection: bool
 
-
-#  API 
-
 @router.post("/api/interactive/detection")
 async def interactive_detection(payload: DetectionToggle):
     """Toggle hand-gesture detection on/off."""
     state = "ENABLED" if payload.enabled else "DISABLED"
-    print(f"\n[interactive] Detection -> {state}")
-    # TODO: start/stop gesture detection service
+    logger.info("[interactive] Detection -> %s", state)
     return {"status": "ok", "enabled": payload.enabled}
 
 
 @router.post("/api/interactive/targets")
 async def interactive_targets(payload: TargetsPayload):
     """Sync the ordered target priority list."""
-    print("\n[interactive] Target priorities updated:")
+    logger.info("[interactive] Target priorities updated:")
     for i, name in enumerate(payload.targets, 1):
-        print(f"  priority {i}: {name}")
-    # TODO: push updated priorities to robot controller
+        logger.info("  priority %s: %s", i, name)
     return {"status": "ok", "count": len(payload.targets)}
 
 
 @router.post("/api/interactive/start")
 async def interactive_start(payload: StartPayload):
     """Start the interactive task with current configuration."""
-    print("\n" + "="*40)
-    print("[interactive] > START TASK TRIGGERED")
-    print("="*40)
-    print(f"  Detection Active: {payload.detection}")
-    print(f"  Targets Order:    {payload.targets}")
-    print("="*40 + "\n")
+    logger.info("%s", "=" * 40)
+    logger.info("[interactive] > START TASK TRIGGERED")
+    logger.info("%s", "=" * 40)
+    logger.info("  Detection Active: %s", payload.detection)
+    logger.info("  Targets Order:    %s", payload.targets)
+    logger.info("%s", "=" * 40)
     publish_command(build_hardcoded_fsm_command())
-    print("[interactive] FSM command published.")
+    logger.info("[interactive] FSM command published.")
     return {"status": "started"}

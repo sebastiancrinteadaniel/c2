@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import fractions
+import logging
 import queue
 import sys
 import threading
@@ -18,8 +19,7 @@ from app.config.detector import get_detector_settings
 
 VIDEO_CLOCK_RATE = 90000
 VIDEO_TIME_BASE  = fractions.Fraction(1, VIDEO_CLOCK_RATE)
-
-#  Detection provider (set by detector service to avoid circular imports) 
+logger = logging.getLogger(__name__)
 _detection_provider = None
 
 
@@ -89,13 +89,8 @@ class CameraStreamTrack(MediaStreamTrack):
         self._cap = cv2.VideoCapture(cfg.camera_index, backend)
         if not self._cap.isOpened():
             raise RuntimeError(f"Could not open camera at index {cfg.camera_index}")
-
-        #  Force compressed pixel format BEFORE setting resolution/fps.
-        #  On Linux/V4L2 the default (YUYV) cannot sustain 1080p over USB 2.0.
         fourcc = cv2.VideoWriter_fourcc(*cfg.camera_fourcc)
         self._cap.set(cv2.CAP_PROP_FOURCC, fourcc)
-
-        #  Reduce internal V4L2 buffer from 4 frames → 1 to cut latency.
         self._cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
 
         self._cap.set(cv2.CAP_PROP_FRAME_WIDTH,  cfg.capture_width)
@@ -106,16 +101,21 @@ class CameraStreamTrack(MediaStreamTrack):
         actual_h   = int(self._cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
         actual_fps = self._cap.get(cv2.CAP_PROP_FPS)
         if actual_fps != cfg.camera_fps or actual_w != cfg.capture_width or actual_h != cfg.capture_height:
-            print(
-                f"[camera] ⚠ Negotiated {actual_w}×{actual_h} @ {actual_fps:.1f}fps "
-                f"(requested {cfg.capture_width}×{cfg.capture_height} @ {cfg.camera_fps}fps)"
+            logger.warning(
+                "[camera] Negotiated %s×%s @ %.1ffps (requested %s×%s @ %sfps)",
+                actual_w,
+                actual_h,
+                actual_fps,
+                cfg.capture_width,
+                cfg.capture_height,
+                cfg.camera_fps,
             )
 
         self._running = True
         self._thread = threading.Thread(target=self._reader, daemon=True)
         self._thread.start()
 
-        print(f"[camera] Started - {cfg.summary()}")
+        logger.info("[camera] Started - %s", cfg.summary())
 
     def stop_capture(self) -> None:
         """Stop the background thread and release the camera."""
@@ -126,7 +126,7 @@ class CameraStreamTrack(MediaStreamTrack):
             self._cap.release()
         self.latest_bgr_infer = None
         self.latest_bgr_display = None
-        print("[camera] Capture stopped")
+        logger.info("[camera] Capture stopped")
 
     def _reader(self) -> None:
         cfg = self._cfg
@@ -137,8 +137,6 @@ class CameraStreamTrack(MediaStreamTrack):
             if not ret:
                 time.sleep(interval)
                 continue
-
-            #  Inference copy (downscaled from capture) 
             self.latest_bgr_infer = (
                 cv2.resize(
                     bgr,
@@ -148,8 +146,6 @@ class CameraStreamTrack(MediaStreamTrack):
                 if cfg.need_infer_resize else bgr
             )
             self._infer_frame_id += 1
-
-            #  Display copy (resized from capture for WebRTC) 
             display_bgr = (
                 cv2.resize(
                     bgr,
@@ -159,24 +155,17 @@ class CameraStreamTrack(MediaStreamTrack):
                 if cfg.need_display_resize else bgr
             )
             self.latest_bgr_display = display_bgr
-
-            #  Draw detections (if detector is running) 
             if _detection_provider is not None:
                 dets = _detection_provider()
                 if dets:
                     dh, dw = display_bgr.shape[:2]
                     _draw_detections(display_bgr, dets, dw, dh)
-
-            #  BGR -> RGB -> av.VideoFrame 
             rgb = cv2.cvtColor(display_bgr, cv2.COLOR_BGR2RGB)
             frame = av.VideoFrame.from_ndarray(rgb, format="rgb24")
 
             self._pts += int(VIDEO_CLOCK_RATE / cfg.camera_fps)
             frame.pts = self._pts
             frame.time_base = VIDEO_TIME_BASE
-
-            #  Push directly into the thread-safe queue - no asyncio syscall.
-            #  Drop the oldest frame when the consumer (recv) falls behind.
             if self._queue.qsize() >= 2:
                 try:
                     self._queue.get_nowait()
@@ -193,9 +182,6 @@ class CameraStreamTrack(MediaStreamTrack):
         """Called by aiortc to get the next frame for a peer connection."""
         loop = asyncio.get_event_loop()
         return await loop.run_in_executor(None, self._queue.get)
-
-
-#  Singleton 
 _camera_track: Optional[CameraStreamTrack] = None
 
 

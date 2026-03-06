@@ -39,28 +39,20 @@ class CameraSettings(BaseSettings):
         extra="ignore",
     )
 
-    #  Capture 
     capture_width:  int = 1920
     capture_height: int = 1080
 
-    #  Inference 
     infer_width:  int = 640
     infer_height: int = 640
 
-    #  Display (WebRTC stream) 
-    # -1 means "same as capture" - resolved in the validator below
     display_width:  int = -1
     display_height: int = -1
 
-    #  Misc 
     camera_fps:   int = 30
     camera_index: int = 0
 
-    #  WebRTC encoder bandwidth hint 
     webrtc_video_kbps: int = 6000
 
-    #  V4L2 pixel format (Linux). "MJPG" avoids raw YUYV bandwidth ceiling
-    #  that limits 1080p to ~5 fps on USB 2.0. Safe to set on Windows too.
     camera_fourcc: str = "MJPG"
 
     @model_validator(mode="after")
@@ -71,7 +63,6 @@ class CameraSettings(BaseSettings):
             self.display_height = self.capture_height
         return self
 
-    #  Derived helpers 
     @property
     def need_infer_resize(self) -> bool:
         return (self.infer_width != self.capture_width) or (
