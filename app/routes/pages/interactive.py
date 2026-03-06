@@ -57,6 +57,9 @@ async def interactive_start(payload: StartPayload):
     logger.info("  Detection Active: %s", payload.detection)
     logger.info("  Targets Order:    %s", payload.targets)
     logger.info("%s", "=" * 40)
-    publish_command(build_hardcoded_fsm_command())
-    logger.info("[interactive] FSM command published.")
-    return {"status": "started"}
+    publish_result = publish_command(build_hardcoded_fsm_command())
+    if publish_result["published"]:
+        logger.info("[interactive] FSM command published.")
+        return {"status": "started", "command": publish_result}
+    logger.warning("[interactive] FSM command not published: %s", publish_result["reason"])
+    return {"status": "error", "command": publish_result}

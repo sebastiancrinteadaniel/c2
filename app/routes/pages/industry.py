@@ -196,9 +196,12 @@ async def industry_start():
     for entry in current_mapping:
         logger.info("    - part=%r  quantity=%s", entry["part"], entry["quantity"])
     logger.info("%s", "=" * 40)
-    publish_command(build_hardcoded_fsm_command())
-    logger.info("[industry] FSM command published.")
-    return {"status": "started"}
+    publish_result = publish_command(build_hardcoded_fsm_command())
+    if publish_result["published"]:
+        logger.info("[industry] FSM command published.")
+        return {"status": "started", "command": publish_result}
+    logger.warning("[industry] FSM command not published: %s", publish_result["reason"])
+    return {"status": "error", "command": publish_result}
 
 
 @router.get("/api/industry/profiles", response_model=ProfilesResponse)

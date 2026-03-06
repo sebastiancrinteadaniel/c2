@@ -46,6 +46,9 @@ async def food_start(payload: MappingPayload):
         for e in payload.mapping:
             logger.info("    - product=%r  quantity=%s", e.product, e.quantity)
     logger.info("%s", "=" * 40)
-    publish_command(build_hardcoded_fsm_command())
-    logger.info("[food] FSM command published.")
-    return {"status": "started"}
+    publish_result = publish_command(build_hardcoded_fsm_command())
+    if publish_result["published"]:
+        logger.info("[food] FSM command published.")
+        return {"status": "started", "command": publish_result}
+    logger.warning("[food] FSM command not published: %s", publish_result["reason"])
+    return {"status": "error", "command": publish_result}

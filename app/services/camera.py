@@ -202,3 +202,21 @@ def stop_camera() -> None:
     if _camera_track is not None:
         _camera_track.stop_capture()
         _camera_track = None
+
+
+def get_camera_status() -> dict:
+    """Return camera lifecycle and frame availability status."""
+    if _camera_track is None:
+        return {
+            "ready": False,
+            "running": False,
+            "has_infer_frame": False,
+            "has_display_frame": False,
+        }
+
+    return {
+        "ready": _camera_track._running,
+        "running": _camera_track._running,
+        "has_infer_frame": _camera_track.latest_bgr_infer is not None,
+        "has_display_frame": _camera_track.latest_bgr_display is not None,
+    }

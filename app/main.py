@@ -10,9 +10,9 @@ from app.config.server import get_server_settings
 from app.routes import webrtc
 from app.routes.pages import all_routers as page_routers
 from app.routes.webrtc import close_all_connections
-from app.services.camera import start_camera, stop_camera
-from app.services.detector import start_detector, stop_detector
-from app.services.ros2_publisher import start_ros2_publisher, stop_ros2_publisher
+from app.services.camera import get_camera_status, start_camera, stop_camera
+from app.services.detector import get_detector_status, start_detector, stop_detector
+from app.services.ros2_publisher import get_ros2_status, start_ros2_publisher, stop_ros2_publisher
 from app.services.system_metrics import get_system_metrics
 
 
@@ -65,6 +65,45 @@ app = FastAPI(title="MyCobot C2", lifespan=lifespan)
 @app.get("/api/system-metrics")
 async def system_metrics():
     return get_system_metrics()
+
+
+@app.get("/api/health")
+async def health():
+    camera = get_camera_status()
+    detector = get_detector_status()
+    ros2 = get_ros2_status()
+    return {
+        "status": "ok",
+        "services": {
+            "camera": camera,
+            "detector": detector,
+            "ros2": ros2,
+        },
+    }
+
+
+@app.get("/api/ready")
+async def ready():
+    camera = get_camera_status()
+    detector = get_detector_status()
+    ros2 = get_ros2_status()
+
+    ros2_ok = ros2["ready"] or not ros2["available"]
+    is_ready = camera["ready"] and detector["ready"] and ros2_ok
+
+    return {
+        "ready": is_ready,
+        "checks": {
+            "camera": camera["ready"],
+            "detector": detector["ready"],
+            "ros2": ros2_ok,
+        },
+        "services": {
+            "camera": camera,
+            "detector": detector,
+            "ros2": ros2,
+        },
+    }
 
 @app.post("/api/emergency-stop")
 async def global_emergency_stop():

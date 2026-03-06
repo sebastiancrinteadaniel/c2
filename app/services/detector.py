@@ -163,3 +163,25 @@ def stop_detector() -> None:
     if _detector is not None:
         _detector.stop()
         _detector = None
+
+
+def get_detector_status() -> dict:
+    """Return detector lifecycle and inference readiness state."""
+    if _detector is None:
+        return {
+            "enabled": get_detector_settings().detector_enabled,
+            "running": False,
+            "model_loaded": False,
+            "device": None,
+            "detections_count": 0,
+            "ready": False,
+        }
+
+    return {
+        "enabled": _detector._cfg.detector_enabled if _detector._cfg else True,
+        "running": _detector._running,
+        "model_loaded": _detector._model is not None,
+        "device": _detector._device,
+        "detections_count": len(_detector.latest_detections),
+        "ready": _detector._running and _detector._model is not None,
+    }

@@ -69,9 +69,11 @@ async def handle_offer(body: OfferBody):
 
 def _inject_bandwidth(sdp: str, kbps: int) -> str:
     """
-    Insert  b=AS:<kbps>  into every video m-section of an SDP string.
-    This hints to the encoder that it can use up to <kbps> kbps - critical
-    for getting decent quality on LAN where bandwidth is not the bottleneck.
+        Insert bandwidth limits into every video m-section of an SDP string.
+        We add both:
+            - b=AS:<kbps>      (legacy, widely recognized)
+            - b=TIAS:<bps>     (RFC3890 transport-independent bitrate)
+        Using both increases interoperability across peers/implementations.
     """
     lines = sdp.splitlines()
     patched: list[str] = []
@@ -89,6 +91,7 @@ def _inject_bandwidth(sdp: str, kbps: int) -> str:
         if in_video and not bw_written and line.startswith("c="):
             patched.append(line)
             patched.append(f"b=AS:{kbps}")
+            patched.append(f"b=TIAS:{kbps * 1000}")
             bw_written = True
             continue
 

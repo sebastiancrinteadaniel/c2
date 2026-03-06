@@ -37,6 +37,9 @@ async def healthcare_start(payload: HealthcareStart):
     logger.info("%s", "=" * 40)
     logger.info("  Injection Length: %smm", payload.injection_length)
     logger.info("%s", "=" * 40)
-    publish_command(build_hardcoded_fsm_command())
-    logger.info("[healthcare] FSM command published.")
-    return {"status": "started"}
+    publish_result = publish_command(build_hardcoded_fsm_command())
+    if publish_result["published"]:
+        logger.info("[healthcare] FSM command published.")
+        return {"status": "started", "command": publish_result}
+    logger.warning("[healthcare] FSM command not published: %s", publish_result["reason"])
+    return {"status": "error", "command": publish_result}
