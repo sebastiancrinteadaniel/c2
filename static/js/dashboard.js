@@ -18,13 +18,19 @@
   updateClock();
   setInterval(updateClock, 1000);
 
-  //  FPS counter (reads from the video element via requestVideoFrameCallback)
-  const videoEl = document.getElementById('stream');
   const fpsEl = document.getElementById('status-fps');
   const latEl = document.getElementById('status-latency');
   const cpuEl = document.getElementById('status-cpu');
   const ramEl = document.getElementById('status-ram');
   const gpuEl = document.getElementById('status-gpu');
+  const streamEl = document.getElementById('stream');
+  const streamOverlayEl = document.getElementById('stream-overlay');
+  const streamIndicatorEl = document.getElementById('stream-indicator');
+
+  let pc = null;
+  let dc = null;
+  let pingInterval = null;
+  let lastPingAt = 0;
 
   function applySystemMetrics(data) {
     if (!cpuEl || !ramEl || !gpuEl) return;
@@ -39,28 +45,141 @@
     applySystemMetrics(evt.detail);
   });
 
-  if (videoEl && fpsEl && 'requestVideoFrameCallback' in videoEl) {
-    let lastTs = null;
-    let frameCount = 0;
-    let fpsSmoothed = 0;
+  if (fpsEl) fpsEl.textContent = '--';
+  if (latEl) latEl.textContent = '--';
 
-    function onFrame(now, meta) {
-      if (lastTs !== null) {
-        const delta = now - lastTs;
-        const inst = 1000 / delta;
-        fpsSmoothed = fpsSmoothed * 0.85 + inst * 0.15;
-        fpsEl.textContent = fpsSmoothed.toFixed(1);
+  function setStreamUiConnected() {
+    if (streamOverlayEl) streamOverlayEl.classList.add('hidden');
+    if (streamIndicatorEl) {
+      streamIndicatorEl.classList.remove('indicator--red');
+      streamIndicatorEl.classList.add('indicator--green');
+    }
+  }
 
-        // Rough latency estimate from processing delay
-        if (meta.processingDuration !== undefined) {
-          latEl.textContent = (meta.processingDuration * 1000).toFixed(0) + 'ms';
-        }
+  function setStreamUiDisconnected(message) {
+    if (streamOverlayEl) {
+      const text = streamOverlayEl.querySelector('.stream-overlay-text');
+      if (text) text.textContent = message || 'Camera stream disconnected';
+      streamOverlayEl.classList.remove('hidden');
+    }
+    if (streamIndicatorEl) {
+      streamIndicatorEl.classList.remove('indicator--green');
+      streamIndicatorEl.classList.add('indicator--red');
+    }
+    if (fpsEl) fpsEl.textContent = '--';
+    if (latEl) latEl.textContent = '--';
+  }
+
+  function stopPing() {
+    if (pingInterval) {
+      clearInterval(pingInterval);
+      pingInterval = null;
+    }
+  }
+
+  function startPing() {
+    stopPing();
+    pingInterval = setInterval(() => {
+      if (dc && dc.readyState === 'open') {
+        lastPingAt = Date.now();
+        dc.send('ping');
       }
-      lastTs = now;
-      videoEl.requestVideoFrameCallback(onFrame);
+    }, 1000);
+  }
+
+  async function closeStreamConnection() {
+    stopPing();
+
+    if (dc) {
+      dc.close();
+      dc = null;
     }
 
-    videoEl.requestVideoFrameCallback(onFrame);
+    if (pc) {
+      pc.close();
+      pc = null;
+    }
+
+    if (streamEl && streamEl.srcObject) {
+      streamEl.srcObject.getTracks().forEach((track) => track.stop());
+      streamEl.srcObject = null;
+    }
+  }
+
+  async function connectWebRtcStream() {
+    if (!streamEl || !window.RTCPeerConnection) return;
+
+    setStreamUiDisconnected('Connecting camera stream...');
+
+    try {
+      pc = new RTCPeerConnection();
+      dc = pc.createDataChannel('status');
+
+      dc.onopen = () => {
+        setStreamUiConnected();
+        startPing();
+      };
+
+      dc.onmessage = (event) => {
+        if (event.data === 'pong' && latEl) {
+          latEl.textContent = String(Date.now() - lastPingAt);
+        }
+      };
+
+      pc.ontrack = (event) => {
+        if (event.track.kind === 'video') {
+          streamEl.srcObject = event.streams[0];
+        }
+      };
+
+      pc.onconnectionstatechange = () => {
+        if (!pc) return;
+        if (pc.connectionState === 'connected') {
+          setStreamUiConnected();
+        }
+        if (['failed', 'disconnected', 'closed'].includes(pc.connectionState)) {
+          setStreamUiDisconnected('Camera stream disconnected');
+        }
+      };
+
+      pc.addTransceiver('video', { direction: 'recvonly' });
+
+      const offer = await pc.createOffer();
+      await pc.setLocalDescription(offer);
+
+      const response = await fetch('/offer', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sdp: pc.localDescription.sdp,
+          type: pc.localDescription.type,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Offer negotiation failed');
+      }
+
+      const answer = await response.json();
+      await pc.setRemoteDescription(new RTCSessionDescription(answer));
+
+      const track = streamEl.srcObject && streamEl.srcObject.getVideoTracks()[0];
+      if (track && fpsEl && track.getSettings) {
+        const settings = track.getSettings();
+        fpsEl.textContent = settings.frameRate ? String(Math.round(settings.frameRate)) : '--';
+      }
+    } catch (err) {
+      console.error('WebRTC stream error:', err);
+      setStreamUiDisconnected('Unable to connect camera stream');
+      await closeStreamConnection();
+    }
+  }
+
+  if (streamEl) {
+    connectWebRtcStream();
+    window.addEventListener('beforeunload', () => {
+      closeStreamConnection();
+    });
   }
 
   //  Global Footer Actions 

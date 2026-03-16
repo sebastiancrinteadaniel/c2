@@ -1,148 +1,69 @@
-import asyncio
+"""WebRTC signaling routes for browser video streaming."""
+
+from __future__ import annotations
+
 import logging
+from typing import Set
 
 from aiortc import RTCPeerConnection, RTCSessionDescription
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
-from app.services.camera import get_camera_track
-from app.config.camera import get_camera_settings
-from app.services.detector import get_detector
-from app.services.system_metrics import get_system_metrics
+from app.services.webrtc_camera import CameraStreamTrack
 
-import json
 
-router = APIRouter()
 logger = logging.getLogger(__name__)
-_peer_connections: set[RTCPeerConnection] = set()
+router = APIRouter()
+pcs: Set[RTCPeerConnection] = set()
 
 
-class OfferBody(BaseModel):
+class OfferPayload(BaseModel):
     sdp: str
     type: str
 
 
-@router.post("/api/offer")
-async def handle_offer(body: OfferBody):
-    offer = RTCSessionDescription(sdp=body.sdp, type=body.type)
+@router.post("/offer")
+async def offer(payload: OfferPayload):
+    """Negotiate a WebRTC connection and return SDP answer."""
+    try:
+        remote_offer = RTCSessionDescription(sdp=payload.sdp, type=payload.type)
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail="Invalid WebRTC offer payload") from exc
 
     pc = RTCPeerConnection()
-    _peer_connections.add(pc)
+    pcs.add(pc)
+    camera_track = CameraStreamTrack()
+    pc.addTrack(camera_track)
 
     @pc.on("connectionstatechange")
-    async def on_state_change():
-        state = pc.connectionState
-        logger.info("[webrtc] Connection state -> %s", state)
-        if state in ("failed", "closed", "disconnected"):
+    async def on_connectionstatechange() -> None:
+        logger.info("[webrtc] connection state -> %s", pc.connectionState)
+        if pc.connectionState in {"failed", "closed", "disconnected"}:
+            camera_track.stop()
+            pcs.discard(pc)
             await pc.close()
-            _peer_connections.discard(pc)
 
     @pc.on("datachannel")
-    def on_datachannel(channel):
-        if channel.label == "detections":
-            logger.info("[webrtc] Detection DataChannel opened")
-            task = asyncio.create_task(_send_detections(channel))
+    def on_datachannel(channel) -> None:
+        logger.info("[webrtc] datachannel opened: %s", channel.label)
 
-            @channel.on("close")
-            def on_close():
-                logger.info("[webrtc] Detection DataChannel closed")
-                task.cancel()
+        @channel.on("message")
+        def on_message(message) -> None:
+            if message == "ping":
+                channel.send("pong")
 
-    camera = get_camera_track()
-    pc.addTrack(camera)
-
-    await pc.setRemoteDescription(offer)
+    await pc.setRemoteDescription(remote_offer)
     answer = await pc.createAnswer()
     await pc.setLocalDescription(answer)
 
-    await _wait_for_ice(pc)
-    patched_sdp = _inject_bandwidth(
-        pc.localDescription.sdp,
-        kbps=get_camera_settings().webrtc_video_kbps,
-    )
-
     return {
-        "sdp": patched_sdp,
+        "sdp": pc.localDescription.sdp,
         "type": pc.localDescription.type,
     }
 
 
-def _inject_bandwidth(sdp: str, kbps: int) -> str:
-    """
-        Insert bandwidth limits into every video m-section of an SDP string.
-        We add both:
-            - b=AS:<kbps>      (legacy, widely recognized)
-            - b=TIAS:<bps>     (RFC3890 transport-independent bitrate)
-        Using both increases interoperability across peers/implementations.
-    """
-    lines = sdp.splitlines()
-    patched: list[str] = []
-    in_video = False
-    bw_written = False
-
-    for line in lines:
-        if line.startswith("m=video"):
-            in_video = True
-            bw_written = False
-            patched.append(line)
-            continue
-        elif line.startswith("m="):
-            in_video = False
-        if in_video and not bw_written and line.startswith("c="):
-            patched.append(line)
-            patched.append(f"b=AS:{kbps}")
-            patched.append(f"b=TIAS:{kbps * 1000}")
-            bw_written = True
-            continue
-
-        patched.append(line)
-
-    return "\r\n".join(patched) + "\r\n"
-
-
-async def _wait_for_ice(pc: RTCPeerConnection, timeout: float = 5.0) -> None:
-    """Wait until ICE gathering is complete or timeout elapses."""
-    loop = asyncio.get_event_loop()
-    done = loop.create_future()
-
-    @pc.on("icegatheringstatechange")
-    def on_ice_gathering():
-        if pc.iceGatheringState == "complete" and not done.done():
-            done.set_result(None)
-
-    if pc.iceGatheringState == "complete":
-        return
-
-    try:
-        await asyncio.wait_for(done, timeout=timeout)
-    except asyncio.TimeoutError:
-        logger.warning("[webrtc] ICE gathering timed out - sending partial candidates")
-
-
-async def _send_detections(channel) -> None:
-    """Polls the detector and sends results over the DataChannel."""
-    last_metrics_push = 0.0
-    while channel.readyState == "open":
-        now = asyncio.get_running_loop().time()
-
-        if now - last_metrics_push >= 5.0:
-            try:
-                channel.send(json.dumps({"system_metrics": get_system_metrics()}))
-            except Exception:
-                logger.exception("[webrtc] Metrics DataChannel send error")
-            last_metrics_push = now
-
-        dets = get_detector().latest_detections
-        if dets:
-            try:
-                channel.send(json.dumps({"detections": dets}))
-            except Exception:
-                logger.exception("[webrtc] DataChannel send error")
-        await asyncio.sleep(0.1)
-
-
-async def close_all_connections() -> None:
-    """Close all open peer connections (called on app shutdown)."""
-    coros = [pc.close() for pc in _peer_connections]
-    await asyncio.gather(*coros, return_exceptions=True)
-    _peer_connections.clear()
+async def close_all_peer_connections() -> None:
+    """Close all active peer connections."""
+    for pc in list(pcs):
+        await pc.close()
+        pcs.discard(pc)

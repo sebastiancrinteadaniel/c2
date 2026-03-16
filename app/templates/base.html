@@ -59,26 +59,18 @@
 
       {# Panel header #}
       <div class="camera-panel-header">
-        <span class="camera-panel-title">Live Camera Stream</span>
+        <span class="camera-panel-title">System Overview</span>
         <div class="camera-panel-indicators">
           <span class="indicator indicator--red" id="stream-indicator"></span>
           <span class="indicator indicator--red" style="background:var(--red)"></span>
         </div>
       </div>
 
-      {# Video viewport with corner brackets #}
       <div class="camera-viewport">
         <video id="stream" autoplay playsinline muted></video>
-
-        {# Bottom-right / bottom-left corner brackets via JS-injected divs
-           (top corners are CSS ::before / ::after on .camera-viewport) #}
-        <div class="camera-corner-br"></div>
-        <div class="camera-corner-bl"></div>
-
-        {# Connecting overlay — hidden by webrtc.js once stream starts #}
         <div class="stream-overlay" id="stream-overlay">
           <div class="spinner"></div>
-          <span class="stream-overlay-text">Connecting to camera…</span>
+          <span class="stream-overlay-text">Connecting camera stream...</span>
         </div>
       </div>
 
@@ -126,7 +118,6 @@
 
 </div>
 
-<script src="/static/js/webrtc.js"></script>
 <script src="/static/js/dashboard.js"></script>
 {% block page_scripts %}{% endblock %}
 </body>
