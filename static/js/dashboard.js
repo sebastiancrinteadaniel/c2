@@ -22,7 +22,6 @@
   const latEl = document.getElementById('status-latency');
   const cpuEl = document.getElementById('status-cpu');
   const ramEl = document.getElementById('status-ram');
-  const gpuEl = document.getElementById('status-gpu');
   const streamEl = document.getElementById('stream');
   const streamOverlayEl = document.getElementById('stream-overlay');
   const streamIndicatorEl = document.getElementById('stream-indicator');
@@ -33,12 +32,11 @@
   let lastPingAt = 0;
 
   function applySystemMetrics(data) {
-    if (!cpuEl || !ramEl || !gpuEl) return;
+    if (!cpuEl || !ramEl) return;
     if (!data) return;
 
     cpuEl.textContent = typeof data.cpu_percent === 'number' ? `${data.cpu_percent.toFixed(0)}%` : '--';
     ramEl.textContent = typeof data.ram_percent === 'number' ? `${data.ram_percent.toFixed(0)}%` : '--';
-    gpuEl.textContent = typeof data.gpu_percent === 'number' ? `${data.gpu_percent.toFixed(0)}%` : '--';
   }
 
   window.addEventListener('system-metrics', (evt) => {
@@ -121,8 +119,21 @@
       };
 
       dc.onmessage = (event) => {
-        if (event.data === 'pong' && latEl) {
-          latEl.textContent = String(Date.now() - lastPingAt);
+        if (event.data === 'pong') {
+          if (latEl) latEl.textContent = String(Date.now() - lastPingAt);
+          return;
+        }
+
+        try {
+          const data = JSON.parse(event.data);
+          if (data.type === 'stats') {
+            applySystemMetrics(data);
+            if (fpsEl) {
+              fpsEl.textContent = typeof data.fps === 'number' ? data.fps.toFixed(1) : '--';
+            }
+          }
+        } catch (_err) {
+          // Ignore non-JSON datachannel messages.
         }
       };
 
@@ -162,12 +173,6 @@
 
       const answer = await response.json();
       await pc.setRemoteDescription(new RTCSessionDescription(answer));
-
-      const track = streamEl.srcObject && streamEl.srcObject.getVideoTracks()[0];
-      if (track && fpsEl && track.getSettings) {
-        const settings = track.getSettings();
-        fpsEl.textContent = settings.frameRate ? String(Math.round(settings.frameRate)) : '--';
-      }
     } catch (err) {
       console.error('WebRTC stream error:', err);
       setStreamUiDisconnected('Unable to connect camera stream');

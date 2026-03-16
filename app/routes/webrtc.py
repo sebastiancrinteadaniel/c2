@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import asyncio
+import json
 import logging
 from typing import Set
 
@@ -9,6 +11,7 @@ from aiortc import RTCPeerConnection, RTCSessionDescription
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
+from app.services.system_metrics import get_system_metrics
 from app.services.webrtc_camera import CameraStreamTrack
 
 
@@ -46,6 +49,37 @@ async def offer(payload: OfferPayload):
     @pc.on("datachannel")
     def on_datachannel(channel) -> None:
         logger.info("[webrtc] datachannel opened: %s", channel.label)
+
+        async def push_stats() -> None:
+            while True:
+                if pc.connectionState in {"failed", "closed", "disconnected"}:
+                    break
+
+                if channel.readyState == "open":
+                    stats = get_system_metrics()
+                    payload = {
+                        "type": "stats",
+                        "cpu_percent": stats.get("cpu_percent"),
+                        "ram_percent": stats.get("ram_percent"),
+                        "uptime_seconds": stats.get("uptime_seconds"),
+                        "fps": getattr(camera_track, "current_fps", 0.0),
+                    }
+                    try:
+                        channel.send(json.dumps(payload))
+                    except Exception:
+                        break
+
+                if channel.readyState == "closed":
+                    break
+
+                await asyncio.sleep(1)
+
+        stats_task = asyncio.create_task(push_stats())
+
+        @channel.on("close")
+        def on_close() -> None:
+            if not stats_task.done():
+                stats_task.cancel()
 
         @channel.on("message")
         def on_message(message) -> None:
