@@ -1,22 +1,22 @@
 {
   "profiles": [
     {
-      "name": "Hardware Mix",
+      "name": "Mixed Assembly",
       "mapping": [
         {
-          "part": "Screw",
+          "part": "Small gear",
           "quantity": 30
         },
         {
-          "part": "Bolt",
+          "part": "Large gear",
           "quantity": 20
         },
         {
-          "part": "Gear (24T)",
+          "part": "U-Bracket",
           "quantity": 10
         },
         {
-          "part": "Gear (12T)",
+          "part": "Double Eye Link",
           "quantity": 15
         }
       ]
@@ -25,24 +25,24 @@
       "name": "Gears Only",
       "mapping": [
         {
-          "part": "Gear (24T)",
+          "part": "Small gear",
           "quantity": 25
         },
         {
-          "part": "Gear (12T)",
+          "part": "Large gear",
           "quantity": 25
         }
       ]
     },
     {
-      "name": "Screws & Bolts",
+      "name": "Links & Brackets",
       "mapping": [
         {
-          "part": "Screw",
+          "part": "U-Bracket",
           "quantity": 40
         },
         {
-          "part": "Bolt",
+          "part": "Double Eye Link",
           "quantity": 35
         }
       ]

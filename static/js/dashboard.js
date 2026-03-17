@@ -25,11 +25,13 @@
   const streamEl = document.getElementById('stream');
   const streamOverlayEl = document.getElementById('stream-overlay');
   const streamIndicatorEl = document.getElementById('stream-indicator');
+  const detectionEntriesEl = document.getElementById('detection-entries');
 
   let pc = null;
   let dc = null;
   let pingInterval = null;
   let lastPingAt = 0;
+  let detectionLogItems = [];
 
   function applySystemMetrics(data) {
     if (!cpuEl || !ramEl) return;
@@ -45,6 +47,46 @@
 
   if (fpsEl) fpsEl.textContent = '--';
   if (latEl) latEl.textContent = '--';
+
+  function _timeStampNow() {
+    const now = new Date();
+    const hh = String(now.getHours()).padStart(2, '0');
+    const mm = String(now.getMinutes()).padStart(2, '0');
+    const ss = String(now.getSeconds()).padStart(2, '0');
+    return `${hh}:${mm}:${ss}`;
+  }
+
+  function _pushDetectionLog(message) {
+    detectionLogItems.unshift(message);
+    detectionLogItems = detectionLogItems.slice(0, 6);
+  }
+
+  function renderDetections(detections, detectorReady, detectorStatus) {
+    if (!detectionEntriesEl) return;
+
+    if (!detectorReady) {
+      const status = detectorStatus || 'model unavailable';
+      detectionEntriesEl.innerHTML = `<span class="entry" style="color:var(--text-muted);font-style:italic;">Detector offline: ${status}</span>`;
+      return;
+    }
+
+    if (Array.isArray(detections) && detections.length > 0) {
+      detections.slice(0, 3).forEach((d) => {
+        const label = d.class || 'object';
+        const conf = typeof d.conf === 'number' ? `${Math.round(d.conf * 100)}%` : '--';
+        _pushDetectionLog(`[${_timeStampNow()}] ${label} (${conf})`);
+      });
+    }
+
+    if (detectionLogItems.length === 0) {
+      detectionEntriesEl.innerHTML = '<span class="entry" style="color:var(--text-muted);font-style:italic;">Watching camera for objects...</span>';
+      return;
+    }
+
+    detectionEntriesEl.innerHTML = detectionLogItems
+      .map((item) => `<span class="entry">${item}</span>`)
+      .join('');
+  }
 
   function setStreamUiConnected() {
     if (streamOverlayEl) streamOverlayEl.classList.add('hidden');
@@ -66,6 +108,7 @@
     }
     if (fpsEl) fpsEl.textContent = '--';
     if (latEl) latEl.textContent = '--';
+    renderDetections([], true, '');
   }
 
   function stopPing() {
@@ -131,6 +174,7 @@
             if (fpsEl) {
               fpsEl.textContent = typeof data.fps === 'number' ? data.fps.toFixed(1) : '--';
             }
+            renderDetections(data.detections, data.detector_ready, data.detector_status);
           }
         } catch (_err) {
           // Ignore non-JSON datachannel messages.

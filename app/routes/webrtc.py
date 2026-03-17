@@ -63,6 +63,9 @@ async def offer(payload: OfferPayload):
                         "ram_percent": stats.get("ram_percent"),
                         "uptime_seconds": stats.get("uptime_seconds"),
                         "fps": getattr(camera_track, "current_fps", 0.0),
+                        "detections": getattr(camera_track, "latest_detections", []),
+                        "detector_ready": getattr(camera_track.yolo_processor, "ready", False),
+                        "detector_status": getattr(camera_track.yolo_processor, "status_message", "unknown"),
                     }
                     try:
                         channel.send(json.dumps(payload))
@@ -85,6 +88,7 @@ async def offer(payload: OfferPayload):
         def on_message(message) -> None:
             if message == "ping":
                 channel.send("pong")
+                return
 
     await pc.setRemoteDescription(remote_offer)
     answer = await pc.createAnswer()

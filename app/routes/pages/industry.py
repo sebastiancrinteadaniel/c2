@@ -27,26 +27,26 @@ _applied_mapping: list[dict] = []
 DEFAULT_PROFILES = {
     "profiles": [
         {
-            "name": "Hardware Mix",
+            "name": "Mixed Assembly",
             "mapping": [
-                {"part": "Screw", "quantity": 30},
-                {"part": "Bolt", "quantity": 20},
-                {"part": "Gear (24T)", "quantity": 10},
-                {"part": "Gear (12T)", "quantity": 15},
+                {"part": "Small gear", "quantity": 30},
+                {"part": "Large gear", "quantity": 20},
+                {"part": "U-Bracket", "quantity": 10},
+                {"part": "Double Eye Link", "quantity": 15},
             ],
         },
         {
             "name": "Gears Only",
             "mapping": [
-                {"part": "Gear (24T)", "quantity": 25},
-                {"part": "Gear (12T)", "quantity": 25},
+                {"part": "Small gear", "quantity": 25},
+                {"part": "Large gear", "quantity": 25},
             ],
         },
         {
-            "name": "Screws & Bolts",
+            "name": "Links & Brackets",
             "mapping": [
-                {"part": "Screw", "quantity": 40},
-                {"part": "Bolt", "quantity": 35},
+                {"part": "U-Bracket", "quantity": 40},
+                {"part": "Double Eye Link", "quantity": 35},
             ],
         },
     ]

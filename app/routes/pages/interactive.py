@@ -21,22 +21,11 @@ logger = logging.getLogger(__name__)
 async def interactive_page(request: Request):
     return _render(request, "interactive", "pages/interactive.html")
 
-class DetectionToggle(BaseModel):
-    enabled: bool
-
 class TargetsPayload(BaseModel):
     targets: List[str]
 
 class StartPayload(BaseModel):
     targets: List[str]
-    detection: bool
-
-@router.post("/api/interactive/detection")
-async def interactive_detection(payload: DetectionToggle):
-    """Toggle hand-gesture detection on/off."""
-    state = "ENABLED" if payload.enabled else "DISABLED"
-    logger.info("[interactive] Detection -> %s", state)
-    return {"status": "ok", "enabled": payload.enabled}
 
 
 @router.post("/api/interactive/targets")
@@ -54,7 +43,7 @@ async def interactive_start(payload: StartPayload):
     logger.info("%s", "=" * 40)
     logger.info("[interactive] > START TASK TRIGGERED")
     logger.info("%s", "=" * 40)
-    logger.info("  Detection Active: %s", payload.detection)
+    logger.info("  Detection Active: ALWAYS_ON")
     logger.info("  Targets Order:    %s", payload.targets)
     logger.info("%s", "=" * 40)
     publish_result = publish_command(build_hardcoded_fsm_command())

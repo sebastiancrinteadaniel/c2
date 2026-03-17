@@ -245,54 +245,178 @@
   color: var(--cyan);
 }
 
-/* Gradient bar */
-.ia-prox-bar-wrap {
+.ia-prox-meter {
+  width: min(100%, 640px);
+  margin-top: 4px;
+  margin-left: auto;
+  margin-right: auto;
   position: relative;
-  margin-bottom: 4px;
 }
 
-.ia-prox-bar {
+.ia-prox-track {
+  position: relative;
   width: 100%;
-  height: 18px;
-  border-radius: 3px;
-  background: linear-gradient(to right,
-      #8b1a1a 0%,
-      var(--red) 15%,
-      var(--amber) 35%,
-      var(--green) 55%,
-      #16a34a 100%);
-  position: relative;
-  overflow: visible;
+  aspect-ratio: 6 / 1.5;
+  min-height: 78px;
+  border-radius: 34px;
+  overflow: hidden;
+  border: 1px solid rgba(81, 96, 118, 0.7);
+  background: #0f1117;
+  box-shadow:
+    inset 0 0 0 6px rgba(22, 29, 41, 0.7),
+    inset 0 0 28px rgba(0, 0, 0, 0.55),
+    0 0 0 1px rgba(98, 117, 145, 0.22);
+  cursor: ew-resize;
 }
 
-/* Indicator tick on the bar */
-.ia-prox-indicator {
+.ia-prox-track-fallback {
   position: absolute;
-  top: -4px;
-  width: 2px;
-  height: calc(100% + 8px);
-  background: #fff;
-  border-radius: 2px;
-  box-shadow: 0 0 6px rgba(255, 255, 255, 0.7);
-  left: var(--pos, 50%);
-  transform: translateX(-50%);
-  pointer-events: none;
-  transition: left 0.3s ease;
+  inset: 0;
+  display: block;
+  border-radius: inherit;
 }
 
-/* Tick labels */
+.ia-prox-zone {
+  position: absolute;
+  inset-block: 0;
+}
+
+.ia-prox-zone::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 28% 50%, rgba(255, 255, 255, 0.09), transparent 56%);
+}
+
+.ia-prox-zone--danger {
+  left: 0;
+  width: 46%;
+  background: linear-gradient(90deg, #420009 0%, #64010a 56%, #4d0008 100%);
+}
+
+.ia-prox-zone--warn {
+  left: 46%;
+  width: 14%;
+  background: linear-gradient(90deg, #4b3700 0%, #6b4f05 52%, #4a3600 100%);
+}
+
+.ia-prox-zone--safe {
+  left: 60%;
+  width: 40%;
+  background: linear-gradient(90deg, #003416 0%, #005a26 48%, #003818 100%);
+}
+
 .ia-prox-ticks {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
   display: flex;
   justify-content: space-between;
-  padding: 0 0;
-  margin-top: 5px;
+  align-items: flex-end;
+  padding: 14px 12% 10px;
+  pointer-events: none;
 }
 
 .ia-prox-ticks span {
+  position: relative;
   font-family: var(--font-mono);
-  font-size: 9px;
-  color: var(--text-muted);
+  font-size: clamp(10px, 1.4vw, 16px);
+  font-weight: 700;
+  color: rgba(188, 201, 218, 0.82);
   letter-spacing: 0.02em;
+  text-shadow: 0 0 8px rgba(13, 21, 34, 0.45);
+}
+
+.ia-prox-ticks span::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: calc(100% + 9px);
+  width: 2px;
+  height: 18px;
+  border-radius: 2px;
+  background: rgba(186, 198, 214, 0.65);
+}
+
+.ia-prox-indicator {
+  position: absolute;
+  left: var(--pos, 50%);
+  top: 3px;
+  bottom: 3px;
+  transform: translateX(-50%);
+  width: clamp(24px, 1.8vw, 32px);
+  z-index: 5;
+  user-select: none;
+  touch-action: none;
+  pointer-events: none;
+  transition: left 0.18s ease-out;
+}
+
+.ia-prox-indicator-fallback {
+  display: block;
+  position: absolute;
+  inset: 0;
+}
+
+.ia-prox-indicator-fallback::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 9%;
+  bottom: 9%;
+  transform: translateX(-50%);
+  width: 5px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #84bcff 0%, #5ba4ff 100%);
+  box-shadow: 0 0 12px rgba(91, 164, 255, 0.55);
+}
+
+.ia-prox-indicator-fallback::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: clamp(18px, 1.2vw, 24px);
+  height: clamp(18px, 1.2vw, 24px);
+  background: #79b2ff;
+  clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%);
+  box-shadow: 0 0 10px rgba(95, 165, 255, 0.5);
+}
+
+.ia-prox-indicator:focus-visible {
+  outline: 2px solid rgba(124, 184, 255, 0.8);
+  outline-offset: 1px;
+  border-radius: 8px;
+}
+
+.ia-prox-track::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  box-shadow:
+    inset 0 0 0 2px rgba(70, 87, 109, 0.35),
+    inset 0 0 0 8px rgba(10, 16, 26, 0.52);
+  pointer-events: none;
+  z-index: 4;
+}
+
+@media (max-width: 1200px) {
+  .ia-prox-track {
+    min-height: 70px;
+  }
+
+  .ia-prox-ticks {
+    padding-inline: 10%;
+    padding-bottom: 10px;
+  }
+
+  .ia-prox-ticks span::before {
+    height: 18px;
+    bottom: calc(100% + 6px);
+  }
 }
 
 /* Robot-hand diagram */
