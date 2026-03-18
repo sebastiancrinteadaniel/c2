@@ -24,6 +24,8 @@
   const ramEl = document.getElementById('status-ram');
   const streamEl = document.getElementById('stream');
   const streamOverlayEl = document.getElementById('stream-overlay');
+  const streamSpinnerEl = document.getElementById('stream-spinner');
+  const streamConnectBtn = document.getElementById('stream-connect-btn');
   const streamIndicatorEl = document.getElementById('stream-indicator');
   const detectionEntriesEl = document.getElementById('detection-entries');
 
@@ -32,6 +34,11 @@
   let pingInterval = null;
   let lastPingAt = 0;
   let detectionLogItems = [];
+  let reconnectTimer = null;
+  let reconnectAttempts = 0;
+  let isConnecting = false;
+  let streamRequested = false;
+  let streamLockedByCalibration = false;
 
   function applySystemMetrics(data) {
     if (!cpuEl || !ramEl) return;
@@ -90,17 +97,38 @@
 
   function setStreamUiConnected() {
     if (streamOverlayEl) streamOverlayEl.classList.add('hidden');
+    if (streamSpinnerEl) streamSpinnerEl.hidden = false;
+    if (streamConnectBtn) {
+      streamConnectBtn.hidden = false;
+      streamConnectBtn.disabled = false;
+      streamConnectBtn.textContent = 'Reconnect Camera';
+    }
     if (streamIndicatorEl) {
       streamIndicatorEl.classList.remove('indicator--red');
       streamIndicatorEl.classList.add('indicator--green');
     }
   }
 
-  function setStreamUiDisconnected(message) {
+  function setStreamUiDisconnected(message, options = {}) {
+    const {
+      showSpinner = false,
+      showButton = false,
+      buttonDisabled = false,
+      buttonLabel = 'Connect Camera',
+    } = options;
+
     if (streamOverlayEl) {
       const text = streamOverlayEl.querySelector('.stream-overlay-text');
       if (text) text.textContent = message || 'Camera stream disconnected';
       streamOverlayEl.classList.remove('hidden');
+    }
+    if (streamSpinnerEl) {
+      streamSpinnerEl.hidden = !showSpinner;
+    }
+    if (streamConnectBtn) {
+      streamConnectBtn.hidden = !showButton;
+      streamConnectBtn.disabled = buttonDisabled;
+      streamConnectBtn.textContent = buttonLabel;
     }
     if (streamIndicatorEl) {
       streamIndicatorEl.classList.remove('indicator--green');
@@ -116,6 +144,49 @@
       clearInterval(pingInterval);
       pingInterval = null;
     }
+  }
+
+  function clearReconnectTimer() {
+    if (reconnectTimer) {
+      clearTimeout(reconnectTimer);
+      reconnectTimer = null;
+    }
+  }
+
+  function resetReconnectBackoff() {
+    reconnectAttempts = 0;
+    clearReconnectTimer();
+  }
+
+  function nextReconnectDelayMs() {
+    const attempt = Math.min(reconnectAttempts, 5);
+    const baseDelay = 1000 * (2 ** attempt);
+    const cappedDelay = Math.min(baseDelay, 15000);
+    const jitter = Math.floor(Math.random() * 250);
+    reconnectAttempts += 1;
+    return cappedDelay + jitter;
+  }
+
+  function scheduleReconnect(reason, immediate = false) {
+    if (!streamEl) return;
+    if (!streamRequested) return;
+    if (document.hidden) return;
+    if (streamLockedByCalibration) return;
+    if (isConnecting || pc || reconnectTimer) return;
+
+    const delay = immediate ? 0 : nextReconnectDelayMs();
+    const message = immediate
+      ? 'Reconnecting camera stream...'
+      : `Reconnecting camera stream (${Math.ceil(delay / 1000)}s)...`;
+    setStreamUiDisconnected(message, {
+      showSpinner: true,
+      showButton: false,
+    });
+
+    reconnectTimer = setTimeout(() => {
+      reconnectTimer = null;
+      connectWebRtcStream(reason);
+    }, delay);
   }
 
   function startPing() {
@@ -147,17 +218,32 @@
     }
   }
 
-  async function connectWebRtcStream() {
+  async function connectWebRtcStream(reason = 'connect') {
     if (!streamEl || !window.RTCPeerConnection) return;
+    if (!streamRequested) return;
+    if (document.hidden) return;
+    if (streamLockedByCalibration) return;
+    if (isConnecting || pc) return;
 
-    setStreamUiDisconnected('Connecting camera stream...');
+    isConnecting = true;
+    let shouldScheduleReconnect = false;
+
+    setStreamUiDisconnected('Connecting camera stream...', {
+      showSpinner: true,
+      showButton: true,
+      buttonDisabled: true,
+      buttonLabel: 'Connecting...',
+    });
 
     try {
-      pc = new RTCPeerConnection();
-      dc = pc.createDataChannel('status');
+      const localPc = new RTCPeerConnection();
+      pc = localPc;
+      dc = localPc.createDataChannel('status');
 
       dc.onopen = () => {
+        if (pc !== localPc) return;
         setStreamUiConnected();
+        resetReconnectBackoff();
         startPing();
       };
 
@@ -181,33 +267,40 @@
         }
       };
 
-      pc.ontrack = (event) => {
+      localPc.ontrack = (event) => {
+        if (pc !== localPc) return;
         if (event.track.kind === 'video') {
           streamEl.srcObject = event.streams[0];
         }
       };
 
-      pc.onconnectionstatechange = () => {
-        if (!pc) return;
-        if (pc.connectionState === 'connected') {
+      localPc.onconnectionstatechange = async () => {
+        if (pc !== localPc) return;
+        if (localPc.connectionState === 'connected') {
           setStreamUiConnected();
+          resetReconnectBackoff();
         }
-        if (['failed', 'disconnected', 'closed'].includes(pc.connectionState)) {
-          setStreamUiDisconnected('Camera stream disconnected');
+        if (['failed', 'disconnected', 'closed'].includes(localPc.connectionState)) {
+          setStreamUiDisconnected('Camera stream disconnected', {
+            showSpinner: false,
+            showButton: false,
+          });
+          await closeStreamConnection();
+          scheduleReconnect(`state:${localPc.connectionState}`);
         }
       };
 
-      pc.addTransceiver('video', { direction: 'recvonly' });
+      localPc.addTransceiver('video', { direction: 'recvonly' });
 
-      const offer = await pc.createOffer();
-      await pc.setLocalDescription(offer);
+      const offer = await localPc.createOffer();
+      await localPc.setLocalDescription(offer);
 
       const response = await fetch('/offer', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          sdp: pc.localDescription.sdp,
-          type: pc.localDescription.type,
+          sdp: localPc.localDescription.sdp,
+          type: localPc.localDescription.type,
         }),
       });
 
@@ -216,17 +309,93 @@
       }
 
       const answer = await response.json();
-      await pc.setRemoteDescription(new RTCSessionDescription(answer));
+      if (pc !== localPc) return;
+      await localPc.setRemoteDescription(new RTCSessionDescription(answer));
     } catch (err) {
       console.error('WebRTC stream error:', err);
-      setStreamUiDisconnected('Unable to connect camera stream');
+      setStreamUiDisconnected('Unable to connect camera stream', {
+        showSpinner: false,
+        showButton: true,
+        buttonDisabled: true,
+        buttonLabel: 'Retrying...',
+      });
       await closeStreamConnection();
+      shouldScheduleReconnect = true;
+    } finally {
+      isConnecting = false;
+    }
+
+    if (shouldScheduleReconnect) {
+      scheduleReconnect(reason);
     }
   }
 
   if (streamEl) {
-    connectWebRtcStream();
+    setStreamUiDisconnected('Camera idle', {
+      showSpinner: false,
+      showButton: true,
+    });
+
+    if (streamConnectBtn) {
+      streamConnectBtn.addEventListener('click', () => {
+        if (streamLockedByCalibration) {
+          setStreamUiDisconnected('Camera locked while calibration preview is active', {
+            showSpinner: false,
+            showButton: false,
+          });
+          return;
+        }
+        streamRequested = true;
+        clearReconnectTimer();
+        connectWebRtcStream('manual-connect');
+      });
+    }
+
+    document.addEventListener('visibilitychange', async () => {
+      if (document.hidden) {
+        await closeStreamConnection();
+        if (streamRequested) {
+          setStreamUiDisconnected('Camera paused in background tab', {
+            showSpinner: false,
+            showButton: false,
+          });
+        }
+        return;
+      }
+
+      if (streamRequested) {
+        scheduleReconnect('tab-visible', true);
+      }
+    });
+
+    window.addEventListener('camera-calibration-state', async (event) => {
+      const detail = event?.detail || {};
+      const active = Boolean(detail.active);
+      const message = detail.message || 'Camera unavailable while calibration is active';
+
+      streamLockedByCalibration = active;
+
+      if (active) {
+        clearReconnectTimer();
+        await closeStreamConnection();
+        setStreamUiDisconnected(message, {
+          showSpinner: false,
+          showButton: false,
+        });
+        return;
+      }
+
+      setStreamUiDisconnected('Camera idle', {
+        showSpinner: false,
+        showButton: true,
+      });
+      if (streamRequested) {
+        scheduleReconnect('calibration-ended', true);
+      }
+    });
+
     window.addEventListener('beforeunload', () => {
+      clearReconnectTimer();
       closeStreamConnection();
     });
   }

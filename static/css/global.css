@@ -434,6 +434,31 @@ body {
   color: var(--text-secondary);
 }
 
+.stream-overlay-action {
+  min-width: 160px;
+  padding: 10px 14px;
+  border: 1px solid rgba(59, 130, 246, 0.45);
+  border-radius: 4px;
+  background: rgba(59, 130, 246, 0.16);
+  color: #dbeafe;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, opacity 0.15s;
+}
+
+.stream-overlay-action:hover:not(:disabled) {
+  background: rgba(59, 130, 246, 0.24);
+  border-color: rgba(59, 130, 246, 0.65);
+}
+
+.stream-overlay-action:disabled {
+  cursor: wait;
+  opacity: 0.7;
+}
+
 .spinner {
   width: 28px;
   height: 28px;
@@ -441,6 +466,11 @@ body {
   border-top-color: var(--cyan);
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
+}
+
+.spinner[hidden],
+.stream-overlay-action[hidden] {
+  display: none;
 }
 
 @keyframes spin {

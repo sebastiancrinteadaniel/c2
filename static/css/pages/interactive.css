@@ -50,8 +50,9 @@
 }
 
 .ia-badge--on {
-  background: var(--green);
-  color: #000;
+  background: rgba(14, 99, 46, 0.22);
+  border: 1px solid rgba(34, 197, 94, 0.75);
+  color: #6ee7a0;
 }
 
 .ia-badge--on:hover {
@@ -226,27 +227,27 @@
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  margin-bottom: 10px;
+  margin-bottom: 8px;
 }
 
 .ia-spm-label {
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 0.1em;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.22em;
   text-transform: uppercase;
   color: var(--text-secondary);
 }
 
 .ia-spm-value {
   font-family: var(--font-mono);
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 700;
-  letter-spacing: 0.06em;
-  color: var(--cyan);
+  letter-spacing: 0.14em;
+  color: #d3deef;
 }
 
 .ia-prox-meter {
-  width: min(100%, 640px);
+  width: 100%;
   margin-top: 4px;
   margin-left: auto;
   margin-right: auto;
@@ -256,16 +257,15 @@
 .ia-prox-track {
   position: relative;
   width: 100%;
-  aspect-ratio: 6 / 1.5;
-  min-height: 78px;
-  border-radius: 34px;
+  min-height: 52px;
+  border-radius: 10px;
   overflow: hidden;
-  border: 1px solid rgba(81, 96, 118, 0.7);
-  background: #0f1117;
+  border: 1px solid rgba(81, 96, 118, 0.45);
+  background: #10161f;
   box-shadow:
-    inset 0 0 0 6px rgba(22, 29, 41, 0.7),
-    inset 0 0 28px rgba(0, 0, 0, 0.55),
-    0 0 0 1px rgba(98, 117, 145, 0.22);
+    inset 0 0 0 1px rgba(38, 54, 73, 0.8),
+    inset 0 10px 24px rgba(0, 0, 0, 0.45),
+    0 0 0 1px rgba(98, 117, 145, 0.16);
   cursor: ew-resize;
 }
 
@@ -285,25 +285,25 @@
   content: '';
   position: absolute;
   inset: 0;
-  background: radial-gradient(circle at 28% 50%, rgba(255, 255, 255, 0.09), transparent 56%);
+  background: radial-gradient(circle at 28% 50%, rgba(255, 255, 255, 0.08), transparent 56%);
 }
 
 .ia-prox-zone--danger {
   left: 0;
-  width: 46%;
-  background: linear-gradient(90deg, #420009 0%, #64010a 56%, #4d0008 100%);
+  width: 34%;
+  background: linear-gradient(90deg, #390009 0%, #5a000d 58%, #3a0009 100%);
 }
 
 .ia-prox-zone--warn {
-  left: 46%;
-  width: 14%;
-  background: linear-gradient(90deg, #4b3700 0%, #6b4f05 52%, #4a3600 100%);
+  left: 34%;
+  width: 22%;
+  background: linear-gradient(90deg, #4a3200 0%, #6b4c05 52%, #4a3200 100%);
 }
 
 .ia-prox-zone--safe {
-  left: 60%;
-  width: 40%;
-  background: linear-gradient(90deg, #003416 0%, #005a26 48%, #003818 100%);
+  left: 56%;
+  width: 44%;
+  background: linear-gradient(90deg, #003115 0%, #005f2a 48%, #003417 100%);
 }
 
 .ia-prox-ticks {
@@ -313,18 +313,18 @@
   display: flex;
   justify-content: space-between;
   align-items: flex-end;
-  padding: 14px 12% 10px;
+  padding: 0 14px 8px;
   pointer-events: none;
 }
 
 .ia-prox-ticks span {
   position: relative;
   font-family: var(--font-mono);
-  font-size: clamp(10px, 1.4vw, 16px);
+  font-size: 9px;
   font-weight: 700;
-  color: rgba(188, 201, 218, 0.82);
+  color: rgba(188, 201, 218, 0.88);
   letter-spacing: 0.02em;
-  text-shadow: 0 0 8px rgba(13, 21, 34, 0.45);
+  text-shadow: 0 0 6px rgba(13, 21, 34, 0.45);
 }
 
 .ia-prox-ticks span::before {
@@ -332,9 +332,9 @@
   position: absolute;
   left: 50%;
   transform: translateX(-50%);
-  bottom: calc(100% + 9px);
+  bottom: calc(100% + 5px);
   width: 2px;
-  height: 18px;
+  height: 12px;
   border-radius: 2px;
   background: rgba(186, 198, 214, 0.65);
 }
@@ -342,10 +342,10 @@
 .ia-prox-indicator {
   position: absolute;
   left: var(--pos, 50%);
-  top: 3px;
-  bottom: 3px;
+  top: -2px;
+  bottom: -2px;
   transform: translateX(-50%);
-  width: clamp(24px, 1.8vw, 32px);
+  width: 22px;
   z-index: 5;
   user-select: none;
   touch-action: none;
@@ -363,13 +363,13 @@
   content: '';
   position: absolute;
   left: 50%;
-  top: 9%;
-  bottom: 9%;
+  top: 8px;
+  bottom: 8px;
   transform: translateX(-50%);
-  width: 5px;
+  width: 2px;
   border-radius: 999px;
-  background: linear-gradient(180deg, #84bcff 0%, #5ba4ff 100%);
-  box-shadow: 0 0 12px rgba(91, 164, 255, 0.55);
+  background: linear-gradient(180deg, #77b6ff 0%, #3c8fff 100%);
+  box-shadow: 0 0 8px rgba(91, 164, 255, 0.55);
 }
 
 .ia-prox-indicator-fallback::after {
@@ -378,11 +378,11 @@
   left: 50%;
   top: 50%;
   transform: translate(-50%, -50%);
-  width: clamp(18px, 1.2vw, 24px);
-  height: clamp(18px, 1.2vw, 24px);
-  background: #79b2ff;
+  width: 14px;
+  height: 14px;
+  background: #70afff;
   clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%);
-  box-shadow: 0 0 10px rgba(95, 165, 255, 0.5);
+  box-shadow: 0 0 8px rgba(95, 165, 255, 0.5);
 }
 
 .ia-prox-indicator:focus-visible {
@@ -397,47 +397,78 @@
   inset: 0;
   border-radius: inherit;
   box-shadow:
-    inset 0 0 0 2px rgba(70, 87, 109, 0.35),
-    inset 0 0 0 8px rgba(10, 16, 26, 0.52);
+    inset 0 0 0 1px rgba(70, 87, 109, 0.45),
+    inset 0 0 0 3px rgba(10, 16, 26, 0.42);
   pointer-events: none;
   z-index: 4;
 }
 
 @media (max-width: 1200px) {
   .ia-prox-track {
-    min-height: 70px;
+    min-height: 46px;
   }
 
   .ia-prox-ticks {
-    padding-inline: 10%;
-    padding-bottom: 10px;
+    padding-inline: 10px;
+    padding-bottom: 8px;
   }
 
   .ia-prox-ticks span::before {
-    height: 18px;
-    bottom: calc(100% + 6px);
+    height: 11px;
+    bottom: calc(100% + 4px);
   }
 }
 
 /* Robot-hand diagram */
 .ia-diagram-box {
+  position: relative;
   width: 100%;
-  height: 160px;
-  background: var(--bg-card);
+  height: 146px;
+  background: linear-gradient(180deg, rgba(18, 26, 39, 0.95) 0%, rgba(16, 24, 35, 0.95) 100%);
   border: 1px solid var(--border-light);
   border-radius: 6px;
-  margin-top: 12px;
+  margin-top: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
   overflow: hidden;
 }
 
-.ia-diagram-box img {
-  max-width: 100%;
-  max-height: 100%;
+.ia-scene-bg {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 70% 20%, rgba(40, 120, 255, 0.1), transparent 50%),
+    linear-gradient(135deg, rgba(73, 98, 132, 0.14) 0%, rgba(22, 31, 44, 0) 42%);
+}
+
+.ia-scene-asset {
+  position: absolute;
   object-fit: contain;
-  opacity: 0.9;
+  opacity: 0.93;
+}
+
+.ia-scene-asset--arm {
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 78%;
+  height: 82%;
+  max-width: none;
+}
+
+.ia-scene-asset--hand {
+  width: 25%;
+  max-width: 90px;
+  right: 17%;
+  bottom: 24px;
+}
+
+@media (max-width: 1200px) {
+  .ia-scene-asset--arm {
+    width: 84%;
+    height: 84%;
+  }
 }
 
 .ia-diagram-placeholder {
