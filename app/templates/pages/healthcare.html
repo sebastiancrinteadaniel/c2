@@ -17,9 +17,9 @@
 
 {# PRESCRIPTION ENTRY #}
 <div class="rp-section">
-  <div class="rp-section-header">Prescription Entry</div>
+  <div class="rp-section-header">Prescription Entry (Live Video)</div>
   <div class="hc-rx-image">
-    <div class="hc-rx-empty" id="hc-rx-empty" onclick="loadRx()">
+    <div class="hc-rx-empty" id="hc-rx-empty" onclick="startRxCapture()">
       <div class="hc-rx-upload-icon">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
           stroke-linecap="round" stroke-linejoin="round">
@@ -28,22 +28,42 @@
           <line x1="12" y1="3" x2="12" y2="15"></line>
         </svg>
       </div>
-      <span>READ PRESCRIPTION (OCR)</span>
+      <span>ACTIVATE VIDEO VERIFICATION</span>
+      <span class="hc-rx-subtext">Capture RX from camera, then verify items</span>
     </div>
-    <div id="hc-rx-loaded" style="display:none; width:100%; height:100%;">
-      <img src="/static/img/rx-placeholder.jpg" alt="RX Document" onerror="this.style.display='none'" />
-      <div class="hc-rx-image__overlay">
-        <span class="hc-rx-label"><span class="hc-rx-dot"></span>RX Document Loaded</span>
-        <button class="hc-inspect-btn" id="btn-inspect" onclick="inspectRx()">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-            stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="11" cy="11" r="8"></circle>
-            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-          </svg>
-          Inspect
-        </button>
+
+    <div class="hc-rx-state" id="hc-rx-capture" style="display:none;">
+      <div class="hc-rx-status"><span class="hc-rx-dot"></span>Capture Mode Active</div>
+      <div class="hc-rx-helper">Point the main camera to the prescription source.</div>
+      <div class="hc-rx-helper">Detected now:</div>
+      <div class="hc-rx-list" id="hc-rx-candidates"></div>
+      <div class="hc-rx-helper">Current RX list:</div>
+      <div class="hc-rx-list" id="hc-rx-current-list"></div>
+      <div class="hc-rx-actions">
+        <button class="hc-inspect-btn" id="btn-add-captured" onclick="addCapturedItems()">Add Detected</button>
+        <button class="hc-inspect-btn" id="btn-capture-complete" onclick="finishRxCapture()">Finish Add</button>
+        <button class="hc-inspect-btn hc-inspect-btn--secondary" onclick="cancelRxCapture()">Cancel</button>
       </div>
     </div>
+
+    <div class="hc-rx-state" id="hc-rx-ready" style="display:none;">
+      <div class="hc-rx-status"><span class="hc-rx-dot"></span>RX List Ready</div>
+      <div class="hc-rx-helper">Detected medicine candidates:</div>
+      <div class="hc-rx-list" id="hc-rx-list"></div>
+      <div class="hc-rx-actions">
+        <button class="hc-inspect-btn" onclick="startVerification()">Start Verification</button>
+        <button class="hc-inspect-btn hc-inspect-btn--secondary" onclick="startRxAdd()">Add More</button>
+      </div>
+    </div>
+
+    <div class="hc-rx-state" id="hc-rx-verify" style="display:none;">
+      <div class="hc-rx-status"><span class="hc-rx-dot hc-rx-dot--pulse"></span>Verification Running</div>
+      <div class="hc-rx-helper" id="hc-verify-progress">0/0 matched</div>
+      <div class="hc-rx-actions">
+        <button class="hc-inspect-btn hc-inspect-btn--danger" onclick="stopVerification()">Stop Verification</button>
+      </div>
+    </div>
+
   </div>
 </div>
 
@@ -57,30 +77,13 @@
       <span style="text-align:center">Detected</span>
       <span style="text-align:center">Status</span>
     </div>
-    {# placeholder rows — will be populated dynamically later #}
-    <div class="hc-matrix-row">
-      <span class="hc-matrix-name">Amoxicillin</span>
-      <span class="hc-matrix-cell"><span class="badge badge--yes">YES</span></span>
-      <span class="hc-matrix-cell"><span class="badge badge--yes">YES</span></span>
-      <span class="hc-matrix-cell"><span class="badge badge--match">MATCH</span></span>
-    </div>
-    <div class="hc-matrix-row">
-      <span class="hc-matrix-name">Ibuprofen 400mg</span>
-      <span class="hc-matrix-cell"><span class="badge badge--yes">YES</span></span>
-      <span class="hc-matrix-cell"><span class="badge badge--yes">YES</span></span>
-      <span class="hc-matrix-cell"><span class="badge badge--match">MATCH</span></span>
-    </div>
-    <div class="hc-matrix-row">
-      <span class="hc-matrix-name">Vitamin D3</span>
-      <span class="hc-matrix-cell"><span class="badge badge--yes">YES</span></span>
-      <span class="hc-matrix-cell"><span class="badge badge--yes">YES</span></span>
-      <span class="hc-matrix-cell"><span class="badge badge--match">MATCH</span></span>
-    </div>
-    <div class="hc-matrix-row">
-      <span class="hc-matrix-name">Metformin</span>
-      <span class="hc-matrix-cell"><span class="badge badge--yes">YES</span></span>
-      <span class="hc-matrix-cell"><span class="badge badge--no">NO</span></span>
-      <span class="hc-matrix-cell"><span class="badge badge--missing">MISSING</span></span>
+    <div id="hc-matrix-body">
+      <div class="hc-matrix-row hc-matrix-row--placeholder">
+        <span class="hc-matrix-name">No RX candidates yet</span>
+        <span class="hc-matrix-cell"><span class="badge badge--no">NO</span></span>
+        <span class="hc-matrix-cell"><span class="badge badge--no">NO</span></span>
+        <span class="hc-matrix-cell"><span class="badge badge--missing">WAITING</span></span>
+      </div>
     </div>
   </div>
 </div>
@@ -94,64 +97,12 @@
   <input type="range" class="hc-slider" id="hc-inj-slider" min="0" max="200" value="80" />
   <div class="hc-diagram-syringe">
     <img src="/static/svg/hc-syringe.svg" alt="Syringe diagram"
-      onerror="this.outerHTML=&quot;<span class=hc-diagram-syringe-placeholder>syringe diagram</span>&quot;" />
+      onerror="const n=document.createElement('span');n.className='hc-diagram-syringe-placeholder';n.textContent='syringe diagram';this.replaceWith(n);" />
   </div>
 </div>
 
 {% endblock %}
 
 {% block page_scripts %}
-<script>
-  //  Slider 
-  const _slider = document.getElementById('hc-inj-slider');
-  const _val = document.getElementById('hc-inj-val');
-
-  function _updateSlider() {
-    const pct = ((_slider.value - _slider.min) / (_slider.max - _slider.min) * 100).toFixed(1);
-    _slider.style.setProperty('--pct', pct + '%');
-    _val.textContent = _slider.value + ' MM';
-  }
-  _slider.addEventListener('input', _updateSlider);
-  _updateSlider();
-
-  //  Inspect 
-  async function inspectRx() {
-    const btn = document.getElementById('btn-inspect');
-    const original = btn.innerHTML;
-    btn.disabled = true;
-    btn.textContent = 'Scanning…';
-    try {
-      const res = await fetch('/api/healthcare/inspect', { method: 'POST' });
-      const data = await res.json();
-      console.log('[healthcare] inspect:', data);
-    } catch (err) {
-      console.error('[healthcare] inspect error:', err);
-    } finally {
-      btn.disabled = false;
-      btn.innerHTML = original;
-    }
-  }
-
-  function loadRx() {
-    document.getElementById('hc-rx-empty').style.display = 'none';
-    document.getElementById('hc-rx-loaded').style.display = 'block';
-  }
-
-  //  Footer Start Task binding 
-  const startBtn = document.getElementById('btn-start-task');
-  if (startBtn) {
-    startBtn.addEventListener('click', async () => {
-      const length = parseInt(document.getElementById('hc-inj-slider').value, 10);
-      try {
-        await fetch('/api/healthcare/start', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ injection_length: length })
-        });
-      } catch (err) {
-        console.error('Failed to start healthcare task:', err);
-      }
-    });
-  }
-</script>
+<script src="/static/js/pages/healthcare.js"></script>
 {% endblock %}

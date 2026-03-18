@@ -12,6 +12,7 @@ import numpy as np
 from aiortc import VideoStreamTrack
 from av import VideoFrame
 
+from app.services.healthcare_verification import get_healthcare_session
 from app.services.yolo_processor import get_shared_yolo_processor
 
 
@@ -61,6 +62,7 @@ class CameraStreamTrack(VideoStreamTrack):
         self.cap.set(cv2.CAP_PROP_FPS, 30)
 
         self.yolo_processor = get_shared_yolo_processor()
+        self.healthcare_session = get_healthcare_session()
         self.latest_detections = []
         self._stop_event = threading.Event()
         self._frame_queue: queue.Queue = queue.Queue(maxsize=1)
@@ -115,6 +117,7 @@ class CameraStreamTrack(VideoStreamTrack):
             detections = self._last_detections
 
         self.latest_detections = detections
+        self.healthcare_session.update_from_detections(detections)
         rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         self.current_fps = self._fps_counter.get()
         video_frame = VideoFrame.from_ndarray(rgb, format="rgb24")

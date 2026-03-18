@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet" />
 </head>
-<body>
+<body data-page="{{ active_page | default('') }}">
 <div class="app-shell">
 
   {#  Topbar  #}
@@ -62,7 +62,9 @@
         <span class="camera-panel-title">System Overview</span>
         <div class="camera-panel-indicators">
           <span class="indicator indicator--red" id="stream-indicator"></span>
-          <span class="indicator indicator--red" style="background:var(--red)"></span>
+          <button class="indicator-btn" id="stream-disconnect-btn" type="button" title="Disconnect camera" aria-label="Disconnect camera stream">
+            <span class="indicator indicator--red"></span>
+          </button>
         </div>
       </div>
 

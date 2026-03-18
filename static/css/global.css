@@ -325,6 +325,37 @@ body {
   align-items: center;
 }
 
+.indicator-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  cursor: pointer;
+}
+
+.indicator-btn:hover .indicator--red {
+  box-shadow: 0 0 8px var(--red);
+}
+
+.indicator-btn:focus-visible {
+  outline: 1px solid var(--red);
+  outline-offset: 2px;
+}
+
+.indicator-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.indicator-btn:disabled .indicator--red {
+  box-shadow: none;
+}
+
 .indicator {
   width: 9px;
   height: 9px;

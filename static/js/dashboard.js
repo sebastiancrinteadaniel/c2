@@ -26,6 +26,7 @@
   const streamOverlayEl = document.getElementById('stream-overlay');
   const streamSpinnerEl = document.getElementById('stream-spinner');
   const streamConnectBtn = document.getElementById('stream-connect-btn');
+  const streamDisconnectBtn = document.getElementById('stream-disconnect-btn');
   const streamIndicatorEl = document.getElementById('stream-indicator');
   const detectionEntriesEl = document.getElementById('detection-entries');
 
@@ -95,6 +96,12 @@
       .join('');
   }
 
+  function updateDisconnectButtonState() {
+    if (!streamDisconnectBtn) return;
+    const canDisconnect = isConnecting || Boolean(pc) || streamRequested;
+    streamDisconnectBtn.disabled = !canDisconnect;
+  }
+
   function setStreamUiConnected() {
     if (streamOverlayEl) streamOverlayEl.classList.add('hidden');
     if (streamSpinnerEl) streamSpinnerEl.hidden = false;
@@ -107,6 +114,7 @@
       streamIndicatorEl.classList.remove('indicator--red');
       streamIndicatorEl.classList.add('indicator--green');
     }
+    updateDisconnectButtonState();
   }
 
   function setStreamUiDisconnected(message, options = {}) {
@@ -137,6 +145,7 @@
     if (fpsEl) fpsEl.textContent = '--';
     if (latEl) latEl.textContent = '--';
     renderDetections([], true, '');
+    updateDisconnectButtonState();
   }
 
   function stopPing() {
@@ -226,6 +235,7 @@
     if (isConnecting || pc) return;
 
     isConnecting = true;
+    updateDisconnectButtonState();
     let shouldScheduleReconnect = false;
 
     setStreamUiDisconnected('Connecting camera stream...', {
@@ -261,6 +271,7 @@
               fpsEl.textContent = typeof data.fps === 'number' ? data.fps.toFixed(1) : '--';
             }
             renderDetections(data.detections, data.detector_ready, data.detector_status);
+            window.dispatchEvent(new CustomEvent('webrtc-stats', { detail: data }));
           }
         } catch (_err) {
           // Ignore non-JSON datachannel messages.
@@ -301,6 +312,7 @@
         body: JSON.stringify({
           sdp: localPc.localDescription.sdp,
           type: localPc.localDescription.type,
+          page: document.body?.dataset?.page || null,
         }),
       });
 
@@ -323,6 +335,7 @@
       shouldScheduleReconnect = true;
     } finally {
       isConnecting = false;
+      updateDisconnectButtonState();
     }
 
     if (shouldScheduleReconnect) {
@@ -348,6 +361,18 @@
         streamRequested = true;
         clearReconnectTimer();
         connectWebRtcStream('manual-connect');
+      });
+    }
+
+    if (streamDisconnectBtn) {
+      streamDisconnectBtn.addEventListener('click', async () => {
+        streamRequested = false;
+        clearReconnectTimer();
+        await closeStreamConnection();
+        setStreamUiDisconnected('Camera disconnected', {
+          showSpinner: false,
+          showButton: true,
+        });
       });
     }
 
@@ -398,6 +423,8 @@
       clearReconnectTimer();
       closeStreamConnection();
     });
+
+    updateDisconnectButtonState();
   }
 
   //  Global Footer Actions 

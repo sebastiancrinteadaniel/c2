@@ -11,6 +11,7 @@ from aiortc import RTCPeerConnection, RTCSessionDescription
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
+from app.services.healthcare_verification import get_healthcare_session
 from app.services.system_metrics import get_system_metrics
 from app.services.webrtc_camera import CameraStreamTrack
 
@@ -23,6 +24,7 @@ pcs: Set[RTCPeerConnection] = set()
 class OfferPayload(BaseModel):
     sdp: str
     type: str
+    page: str | None = None
 
 
 @router.post("/offer")
@@ -37,6 +39,7 @@ async def offer(payload: OfferPayload):
     pcs.add(pc)
     camera_track = CameraStreamTrack()
     pc.addTrack(camera_track)
+    is_healthcare_page = (payload.page or "").strip().lower() == "healthcare"
 
     @pc.on("connectionstatechange")
     async def on_connectionstatechange() -> None:
@@ -67,6 +70,8 @@ async def offer(payload: OfferPayload):
                         "detector_ready": getattr(camera_track.yolo_processor, "ready", False),
                         "detector_status": getattr(camera_track.yolo_processor, "status_message", "unknown"),
                     }
+                    if is_healthcare_page:
+                        payload["healthcare"] = get_healthcare_session().snapshot()
                     try:
                         channel.send(json.dumps(payload))
                     except Exception:
