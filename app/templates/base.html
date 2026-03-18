@@ -69,9 +69,11 @@
       <div class="camera-viewport">
         <video id="stream" autoplay playsinline muted></video>
         <div class="stream-overlay" id="stream-overlay">
-          <div class="spinner"></div>
-          <span class="stream-overlay-text">Connecting camera stream...</span>
+          <div class="spinner" id="stream-spinner"></div>
+          <span class="stream-overlay-text">Camera idle</span>
+          <button class="stream-overlay-action" id="stream-connect-btn" type="button">Connect Camera</button>
         </div>
+        {% block camera_overlay %}{% endblock %}
       </div>
 
       {# Detection log #}

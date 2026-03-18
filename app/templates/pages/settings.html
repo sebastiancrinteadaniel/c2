@@ -13,6 +13,31 @@
 <span class="entry" style="color:var(--cyan);font-style:italic;" id="st-status">System diagnostic mode active…</span>
 {% endblock %}
 
+{% block camera_overlay %}
+<div class="st-calibration-center is-hidden" id="st-calibration-center">
+  <div class="st-calibration-center-head">
+    <span class="st-calibration-center-title">Calibration Preview</span>
+    <span class="st-calibration-center-sub" id="st-calibration-center-sub">9 captured frames</span>
+  </div>
+  <div class="st-calibration-loading is-hidden" id="st-calibration-loading">
+    <div class="spinner"></div>
+    <div class="st-calibration-loading-text" id="st-calibration-loading-text">Preparing calibration run...</div>
+  </div>
+  <div class="st-calibration-center-summary" id="st-calibration-center-summary"></div>
+  <div class="st-calibration-center-grid" id="st-calibration-center-grid"></div>
+</div>
+<div class="st-calibration-lightbox is-hidden" id="st-calibration-lightbox">
+  <div class="st-calibration-lightbox-top">
+    <span class="st-calibration-lightbox-title">Calibration Frame Inspect</span>
+    <button class="st-calibration-lightbox-close" type="button" id="st-calibration-lightbox-close">Close</button>
+  </div>
+  <div class="st-calibration-lightbox-body">
+    <img id="st-calibration-lightbox-image" alt="Calibration frame detail preview" />
+  </div>
+  <div class="st-calibration-lightbox-meta" id="st-calibration-lightbox-meta"></div>
+</div>
+{% endblock %}
+
 {% block right_panel %}
 
 {# PHYSICAL AI MODEL #}
@@ -87,6 +112,22 @@
       onerror="this.outerHTML='<span class=rp-action-btn-icon>&#9889;</span>'" />
     Initialize Arm
   </button>
+
+  <div class="st-calibration-panel">
+    <div class="st-calibration-title">Camera Calibration</div>
+    <p class="st-calibration-info">
+      Attach a ChArUco board in view of the camera before starting calibration.
+    </p>
+    <div class="st-calibration-status" id="st-calibration-status">Calibration idle.</div>
+    <button class="rp-action-btn st-calibration-btn" onclick="startCameraCalibration()">
+      <img src="/static/svg/icon-eye.svg" alt=""
+        onerror="this.outerHTML='<span class=rp-action-btn-icon>&#128247;</span>'" />
+      Start Calibration
+    </button>
+    <button class="rp-action-btn st-calibration-btn st-calibration-stop" onclick="stopCameraCalibrationPreview()">
+      Return To Live Camera
+    </button>
+  </div>
 </div>
 
 {% endblock %}
@@ -96,6 +137,7 @@
   //  Joint values (degrees) 
   const _joints = { j1: 30, j2: 45, j3: -12, j4: 90, j5: 0, j6: 180 };
   let _showRadians = false;
+  let _calibrationImages = [];
 
   function _toRad(deg) { return deg * Math.PI / 180; }
 
@@ -149,6 +191,169 @@
     await _post('/api/settings/init', {});
   }
 
+  function _setCalibrationStatus(message) {
+    const statusEl = document.getElementById('st-calibration-status');
+    if (statusEl) statusEl.textContent = message;
+  }
+
+  function _renderCalibrationResults(data) {
+    const centerEl = document.getElementById('st-calibration-center');
+    const loadingEl = document.getElementById('st-calibration-loading');
+    const summaryEl = document.getElementById('st-calibration-center-summary');
+    const gridEl = document.getElementById('st-calibration-center-grid');
+    const subEl = document.getElementById('st-calibration-center-sub');
+    if (!centerEl || !loadingEl || !summaryEl || !gridEl || !subEl) return;
+
+    loadingEl.classList.add('is-hidden');
+
+    const images = Array.isArray(data?.images) ? data.images : [];
+    _calibrationImages = images;
+    if (!images.length) {
+      centerEl.classList.remove('is-hidden');
+      summaryEl.innerHTML = '<div class="st-calibration-empty">No calibration frames received.</div>';
+      gridEl.innerHTML = '';
+      subEl.textContent = '0 captured frames';
+      return;
+    }
+
+    const summary = data.summary || {};
+    summaryEl.innerHTML = `
+      <div class="st-calibration-summary st-calibration-summary--center">
+        <span>Frames: ${summary.captured_images ?? images.length}</span>
+        <span>Usable: ${summary.usable_images ?? '--'}</span>
+        <span>Avg Error: ${summary.avg_reprojection_error_px ?? '--'} px</span>
+      </div>
+    `;
+    subEl.textContent = `${summary.captured_images ?? images.length} captured frames`;
+
+    const cards = images.map((img) => {
+      const errorPx = Number.isFinite(img.reprojection_error_px) ? img.reprojection_error_px.toFixed(3) : '--';
+      return `
+        <article class="st-calibration-card">
+          <div class="st-calibration-image-wrap">
+            <img src="${img.preview_src}" alt="Calibration frame ${img.frame_index}" loading="lazy" />
+            <button class="st-calibration-expand-btn" type="button" data-frame-index="${img.frame_index}" aria-label="Inspect frame ${img.frame_index}">
+              <img src="/static/svg/icon-inspect.svg" alt="" onerror="this.remove()" />
+              Inspect
+            </button>
+          </div>
+          <div class="st-calibration-meta">
+            <span>F${img.frame_index}</span>
+            <span>Corners ${img.charuco_corners ?? '--'}</span>
+            <span>Error ${errorPx}px</span>
+          </div>
+        </article>
+      `;
+    }).join('');
+
+    gridEl.innerHTML = cards;
+    centerEl.classList.remove('is-hidden');
+  }
+
+  async function _simulateCalibrationLoading() {
+    const loadingEl = document.getElementById('st-calibration-loading');
+    const loadingTextEl = document.getElementById('st-calibration-loading-text');
+    const summaryEl = document.getElementById('st-calibration-center-summary');
+    const gridEl = document.getElementById('st-calibration-center-grid');
+    const subEl = document.getElementById('st-calibration-center-sub');
+    const centerEl = document.getElementById('st-calibration-center');
+    if (!loadingEl || !loadingTextEl || !summaryEl || !gridEl || !subEl || !centerEl) return;
+
+    centerEl.classList.remove('is-hidden');
+    loadingEl.classList.remove('is-hidden');
+    summaryEl.innerHTML = '';
+    gridEl.innerHTML = '';
+    subEl.textContent = 'Processing frames...';
+
+    const steps = [
+      { text: 'Capturing calibration frames...', delayMs: 650 },
+      { text: 'Detecting ChArUco corners...', delayMs: 700 },
+      { text: 'Estimating camera pose...', delayMs: 650 },
+      { text: 'Preparing preview results...', delayMs: 500 },
+    ];
+
+    for (const step of steps) {
+      loadingTextEl.textContent = step.text;
+      await new Promise((resolve) => setTimeout(resolve, step.delayMs));
+    }
+  }
+
+  function _broadcastCalibrationState(active, message) {
+    window.dispatchEvent(new CustomEvent('camera-calibration-state', {
+      detail: { active, message },
+    }));
+  }
+
+  async function startCameraCalibration() {
+    const startBtn = document.querySelector('.st-calibration-btn');
+    if (startBtn) startBtn.disabled = true;
+
+    _setCalibrationStatus('Starting calibration...');
+    _broadcastCalibrationState(true, 'Camera stream locked during calibration preview.');
+
+    const requestPromise = _post('/api/settings/calibration/start', { mode: 'charuco_6d_pose' });
+    await _simulateCalibrationLoading();
+    const data = await requestPromise;
+
+    if (!data || data.status !== 'ok') {
+      alert('Calibration service is not available yet. Attach a ChArUco board and try again once calibration is enabled.');
+      _setCalibrationStatus('Calibration unavailable.');
+      _broadcastCalibrationState(false, 'Camera idle');
+      if (startBtn) startBtn.disabled = false;
+      return;
+    }
+
+    _setCalibrationStatus('Calibration preview loaded. Camera stream locked while reviewing frames.');
+    _renderCalibrationResults(data);
+    if (startBtn) startBtn.disabled = false;
+  }
+
+  function _openCalibrationFullscreen(frameIndex) {
+    const lightbox = document.getElementById('st-calibration-lightbox');
+    const imageEl = document.getElementById('st-calibration-lightbox-image');
+    const metaEl = document.getElementById('st-calibration-lightbox-meta');
+    if (!lightbox || !imageEl || !metaEl) return;
+
+    const frame = _calibrationImages.find((item) => Number(item.frame_index) === Number(frameIndex));
+    if (!frame) return;
+
+    imageEl.src = frame.preview_src;
+    imageEl.alt = `Calibration frame ${frame.frame_index} detail preview`;
+    metaEl.innerHTML = `
+      <span>Frame ${frame.frame_index}</span>
+      <span>Corners ${frame.charuco_corners ?? '--'}</span>
+      <span>Error ${frame.reprojection_error_px ?? '--'} px</span>
+      <span>Quality ${frame.pose_quality ?? '--'}</span>
+    `;
+    lightbox.classList.remove('is-hidden');
+  }
+
+  function _closeCalibrationFullscreen() {
+    const lightbox = document.getElementById('st-calibration-lightbox');
+    const imageEl = document.getElementById('st-calibration-lightbox-image');
+    const metaEl = document.getElementById('st-calibration-lightbox-meta');
+    if (!lightbox || !imageEl || !metaEl) return;
+
+    lightbox.classList.add('is-hidden');
+    imageEl.src = '';
+    metaEl.innerHTML = '';
+  }
+
+  function stopCameraCalibrationPreview() {
+    const centerEl = document.getElementById('st-calibration-center');
+    const loadingEl = document.getElementById('st-calibration-loading');
+    const summaryEl = document.getElementById('st-calibration-center-summary');
+    const gridEl = document.getElementById('st-calibration-center-grid');
+    if (loadingEl) loadingEl.classList.add('is-hidden');
+    if (summaryEl) summaryEl.innerHTML = '';
+    if (gridEl) gridEl.innerHTML = '';
+    if (centerEl) centerEl.classList.add('is-hidden');
+    _calibrationImages = [];
+    _closeCalibrationFullscreen();
+    _setCalibrationStatus('Calibration preview closed. Live camera can reconnect.');
+    _broadcastCalibrationState(false, 'Camera idle');
+  }
+
   async function _loadEndEffector() {
     const selectEl = document.getElementById('st-arm-port');
     if (!selectEl) return;
@@ -178,6 +383,33 @@
   const endEffectorSelect = document.getElementById('st-arm-port');
   if (endEffectorSelect) {
     endEffectorSelect.addEventListener('change', _saveEndEffector);
+  }
+
+  const calibrationGrid = document.getElementById('st-calibration-center-grid');
+  if (calibrationGrid) {
+    calibrationGrid.addEventListener('click', (event) => {
+      const target = event.target;
+      if (!(target instanceof HTMLElement)) return;
+      const button = target.closest('.st-calibration-expand-btn');
+      if (!(button instanceof HTMLElement)) return;
+      _openCalibrationFullscreen(button.dataset.frameIndex);
+    });
+  }
+
+  const closeCalibrationLightboxBtn = document.getElementById('st-calibration-lightbox-close');
+  if (closeCalibrationLightboxBtn) {
+    closeCalibrationLightboxBtn.addEventListener('click', () => {
+      _closeCalibrationFullscreen();
+    });
+  }
+
+  const calibrationLightbox = document.getElementById('st-calibration-lightbox');
+  if (calibrationLightbox) {
+    calibrationLightbox.addEventListener('click', (event) => {
+      if (event.target === calibrationLightbox) {
+        _closeCalibrationFullscreen();
+      }
+    });
   }
 
   _loadEndEffector();

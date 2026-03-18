@@ -23,7 +23,7 @@
     <img class="ia-detection-icon" src="/static/svg/ia-hand.svg" alt="hand"
       onerror="this.outerHTML='<span class=ia-detection-icon-fallback>✋</span>'" />
     <span class="ia-detection-label">Detection:</span>
-    <span class="ia-badge ia-badge--on" id="ia-detection-toggle">ALWAYS ON</span>
+    <span class="ia-badge ia-badge--on" id="ia-detection-toggle">ACTIVE</span>
   </div>
 </div>
 
@@ -94,8 +94,11 @@
         <div class="ia-prox-zone ia-prox-zone--safe"></div>
         <div class="ia-prox-ticks">
           <span>0</span>
+          <span>50</span>
           <span>100</span>
+          <span>150</span>
           <span>200</span>
+          <span>250</span>
           <span>300</span>
         </div>
       </div>
@@ -107,9 +110,10 @@
     </div>
   </div>
 
-  <div class="ia-diagram-box">
-    <img src="/static/svg/ia-robot-hand.svg" alt="Robot-hand interaction diagram"
-      onerror="this.outerHTML='<span class=ia-diagram-placeholder>robot-hand diagram</span>'" />
+  <div class="ia-diagram-box" id="ia-prox-scene">
+    <div class="ia-scene-bg" id="ia-scene-bg" aria-hidden="true"></div>
+    <img class="ia-scene-asset ia-scene-asset--arm" src="/static/svg/ia-robot-hand.svg" alt="Robot arm"
+      onerror="this.outerHTML='<span class=ia-diagram-placeholder>robot arm</span>'" />
   </div>
 </div>
 

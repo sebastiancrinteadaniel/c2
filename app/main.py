@@ -22,6 +22,7 @@ from app.services.ros2_publisher import (
     stop_ros2_publisher,
 )
 from app.services.system_metrics import get_system_metrics
+from app.services.yolo_processor import preload_shared_yolo_processor
 
 
 configure_logging()
@@ -30,6 +31,7 @@ logger = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    preload_shared_yolo_processor()
     start_ros2_publisher()
     yield
     await close_all_peer_connections()
@@ -83,6 +85,7 @@ async def global_emergency_stop():
 
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
+app.mount("/mockups", StaticFiles(directory="mockups"), name="mockups")
 
 for router in page_routers:
     app.include_router(router)

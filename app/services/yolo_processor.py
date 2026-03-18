@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import threading
 from pathlib import Path
 from typing import Any, Dict, List, Tuple
 
@@ -13,6 +14,8 @@ logger = logging.getLogger(__name__)
 
 _IMGSZ = 640
 _CONF = 0.45
+_shared_processor = None
+_shared_init_lock = threading.Lock()
 
 try:
     from ultralytics import YOLO
@@ -39,6 +42,7 @@ class YOLOProcessor:
         self._conf = conf
         self._model = None
         self._load_error: str | None = None
+        self._infer_lock = threading.Lock()
 
         candidate = Path(model_path) if model_path else _default_model_path()
         if YOLO is None:
@@ -74,14 +78,16 @@ class YOLOProcessor:
             return
 
         dummy = np.zeros((self._imgsz, self._imgsz, 3), dtype=np.uint8)
-        self._model(dummy, imgsz=self._imgsz, conf=self._conf, verbose=False)
+        with self._infer_lock:
+            self._model(dummy, imgsz=self._imgsz, conf=self._conf, verbose=False)
 
     def process(self, frame: np.ndarray) -> Tuple[np.ndarray, List[Dict[str, Any]]]:
         if self._model is None:
             return frame, []
 
         try:
-            results = self._model(frame, imgsz=self._imgsz, conf=self._conf, verbose=False)
+            with self._infer_lock:
+                results = self._model(frame, imgsz=self._imgsz, conf=self._conf, verbose=False)
             result = results[0]
             annotated = result.plot()
             detections: List[Dict[str, Any]] = []
@@ -102,3 +108,27 @@ class YOLOProcessor:
         except Exception as exc:  # pragma: no cover - runtime inference issue
             logger.exception("[yolo] inference failure: %s", exc)
             return frame, []
+
+
+def get_shared_yolo_processor() -> YOLOProcessor:
+    """Return a lazily created shared YOLO processor instance."""
+    global _shared_processor
+    if _shared_processor is None:
+        with _shared_init_lock:
+            if _shared_processor is None:
+                _shared_processor = YOLOProcessor()
+    return _shared_processor
+
+
+def preload_shared_yolo_processor() -> None:
+    """Preload and warm up YOLO once during app startup."""
+    processor = get_shared_yolo_processor()
+    if not processor.ready:
+        logger.warning("[yolo] shared processor unavailable at startup: %s", processor.status_message)
+        return
+
+    try:
+        processor.warmup()
+        logger.info("[yolo] shared processor warmup complete")
+    except Exception as exc:  # pragma: no cover - runtime warmup issue
+        logger.exception("[yolo] shared processor warmup failed: %s", exc)

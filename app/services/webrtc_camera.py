@@ -12,7 +12,7 @@ import numpy as np
 from aiortc import VideoStreamTrack
 from av import VideoFrame
 
-from app.services.yolo_processor import YOLOProcessor
+from app.services.yolo_processor import get_shared_yolo_processor
 
 
 logger = logging.getLogger(__name__)
@@ -60,7 +60,7 @@ class CameraStreamTrack(VideoStreamTrack):
         self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 1080)
         self.cap.set(cv2.CAP_PROP_FPS, 30)
 
-        self.yolo_processor = YOLOProcessor()
+        self.yolo_processor = get_shared_yolo_processor()
         self.latest_detections = []
         self._stop_event = threading.Event()
         self._frame_queue: queue.Queue = queue.Queue(maxsize=1)
@@ -94,11 +94,6 @@ class CameraStreamTrack(VideoStreamTrack):
             _safe_put(self._frame_queue, frame)
 
     def _inference_loop(self) -> None:
-        try:
-            self.yolo_processor.warmup()
-        except Exception:
-            logger.exception("[webrtc] YOLO warmup failed")
-
         while not self._stop_event.is_set():
             try:
                 frame = self._frame_queue.get(timeout=0.1)
